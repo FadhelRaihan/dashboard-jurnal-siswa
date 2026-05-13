@@ -1,0 +1,168 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: ["sekolah"];
+}
+
+@plugin "daisyui/theme" {
+  name: "sekolah";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  /* BASE - Hangat & Bersih */
+  --color-base-100: #FAFAFA;
+  --color-base-200: #F0F4FF;
+  --color-base-300: #E2E8F0;
+  --color-base-content: #1E293B;
+
+  /* BRAND - Ditingkatkan dari versi lama (#8BAD73) agar lebih vibrant */
+  --color-primary: #78B664; /* Hijau apel ceria */
+  --color-primary-content: #ffffff;
+
+  /* SECONDARY - Ditingkatkan dari #FF9249 agar lebih pop */
+  --color-secondary: #FF8A48; /* Oranye hangat ceria */
+  --color-secondary-content: #ffffff;
+
+  /* ACCENT */
+  --color-accent: #FFD93D; /* Kuning cerah - kegembiraan */
+  --color-accent-content: #1a1a1a;
+
+  /* NEUTRAL */
+  --color-neutral: #3D405B;
+  --color-neutral-content: #ffffff;
+
+  /* STATUS */
+  --color-info: #38BDF8;
+  --color-success: #4ADE80;
+  --color-warning: #FB923C;
+  --color-error: #F87171;
+
+  /* RADIUS - Dibuat lembut/rounded */
+  --radius-selector: 1rem;
+  --radius-field: 0.75rem;
+  --radius-box: 1.5rem; /* Sangat rounded untuk card */
+
+  /* DYNAMIC CONTROLS */
+  --animation-btn: 0.2s;
+}
+
+@theme {
+  /* Tipografi Utama */
+  --font-sans: 'Nunito', sans-serif;
+  --font-body: 'Nunito Sans', sans-serif;
+
+  /* Extended Shadows */
+  --shadow-card: 0 8px 30px -10px rgba(0, 0, 0, 0.1);
+  --shadow-card-hover: 0 20px 40px -12px rgba(0, 0, 0, 0.15);
+  --shadow-glow: 0 10px 30px -5px var(--color-primary);
+  
+  /* Dynamic Gradients & Utilities directly accessible via tailwind */
+  --bg-gradient-warm: linear-gradient(135deg, #FF8A48 0%, #FFD93D 100%);
+  --bg-gradient-fresh: linear-gradient(135deg, #78B664 0%, #38BDF8 100%);
+  --bg-gradient-brand: linear-gradient(135deg, #78B664 0%, #579646 100%);
+}
+
+/* Base Rules */
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* 🎈 Custom Playful Floating Animations 🎈 */
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .animate-bounce-slow {
+    animation: float 4s ease-in-out infinite;
+  }
+  
+  body {
+    @apply bg-base-200 text-base-content font-sans selection:bg-primary/30 selection:text-primary;
+    font-size: 18px;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-black tracking-tight;
+  }
+}
+
+/* Core Utilities for Playful Design */
+@layer utilities {
+  .card-playful {
+    @apply bg-base-100 rounded-3xl shadow-card border border-base-300/50 transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1 overflow-hidden relative;
+  }
+  
+  .btn-playful {
+    @apply rounded-2xl font-bold shadow-md hover:shadow-lg active:scale-95 transition-all duration-200 gap-2 flex items-center justify-center;
+  }
+
+  .glass-nav {
+    @apply bg-base-100/80 backdrop-blur-xl sticky top-0 z-50 border-b border-base-300/40;
+  }
+
+  .text-balance-fix {
+    text-wrap: balance;
+  }
+
+  .touch-target {
+    @apply min-h-12 min-w-12 flex items-center justify-center;
+  }
+
+  /* Background pattern dots super subtle for empty states/main areas */
+  .bg-pattern-dots {
+    background-image: radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Modern premium headless scroll utility */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
+/* ============================================ */
+/* 💎 UNIVERSAL ABSOLUTE SCROLLBAR CONTROL 💎   */
+/* ============================================ */
+
+/* 1. Target SEMUA elemen di Webkit (Chrome, Edge, Safari, Opera, dll.) */
+*::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
+  display: block !important;
+}
+
+*::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03) !important;
+  border-radius: 999px !important;
+}
+
+*::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12) !important;
+  border-radius: 999px !important;
+  border: none !important;
+}
+
+*::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25) !important;
+}
+
+/* 2. Fallback WAJIB untuk Firefox (yang tidak membaca -webkit-scrollbar) */
+* {
+  scrollbar-width: thin !important; /* Membuatnya ramping layaknya 6px */
+  scrollbar-color: rgba(0, 0, 0, 0.12) rgba(0, 0, 0, 0.03) !important; /* Warna thumb & track */
+}
+
+/* 🔒 GLOBAL SCROLL LOCK FOR MODAL OVERLAYS */
+body.modal-scroll-lock main {
+  overflow: hidden !important;
+}

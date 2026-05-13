@@ -1,0 +1,330 @@
+import React, { useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FaArrowLeft, FaCheckCircle, FaCheckDouble, FaExclamationTriangle, FaSave } from "react-icons/fa";
+import CustomButton from "../../../components/atoms/CustomButton";
+// eslint-disable-next-line no-unused-vars
+import { motion, AnimatePresence } from "framer-motion";
+import { angketOrangTuaService } from "../../../services";
+import CustomModal from "../../../components/organism/CustomModal";
+
+const PERNYATAAN_LIST = [
+  // Bagian 1: Pernyataan Perilaku (1-6)
+  { id: 1, text: "Saya selalu membangunkan anak saya setiap pagi." },
+  { id: 2, text: "Saya selalu mengingatkan anak saya untuk melaksanakan ibadah tepat waktu setiap hari." },
+  { id: 3, text: "Saya selalu menyuruh anak saya berolahraga setiap hari." },
+  { id: 4, text: "Saya selalu memastikan anak saya tidak menunda dalam mengerjakan tugas sekolah." },
+  { id: 5, text: "Saya selalu mengajarkan anak saya untuk membantu orang lain tanpa perlu diminta." },
+  { id: 6, text: "Saya selalu membiasakan anak saya menjaga kebersihan diri dan lingkungan sekitarnya." },
+  // Bagian 2: Pernyataan Persepsi Diri (7-12)
+  { id: 7, text: "Saya merasa anak saya sudah menjadi anak yang sangat disiplin setiap hari." },
+  { id: 8, text: "Saya merasa anak saya tidak pernah melakukan kesalahan dalam proses belajar." },
+  { id: 9, text: "Saya merasa anak saya sudah cukup rajin meskipun jarang belajar saat di rumah." },
+  { id: 10, text: "Saya percaya anak saya selalu bersikap jujur dalam semua situasi." },
+  { id: 11, text: "Saya merasa anak saya sudah sangat peduli terhadap teman-temannya." },
+  { id: 12, text: "Saya merasa kebiasaan anak saya sudah sangat baik dibandingkan teman-temannya." },
+  // Bagian 3: Pernyataan Kepatuhan (13-18)
+  { id: 13, text: "Saya melihat anak saya cenderung selalu setuju dengan semua aturan tanpa berpikir panjang." },
+  { id: 14, text: "Saya melihat anak saya biasanya langsung mengikuti apa yang dikatakan guru tanpa mempertimbangkan pendapat pribadinya." },
+  { id: 15, text: "Saya melihat anak saya sering setuju dengan teman meskipun belum merasa yakin." },
+  { id: 16, text: "Saya melihat anak saya cenderung menjawab 'setuju' tanpa berpikir lama saat mengisi pertanyaan angket." },
+  { id: 17, text: "Saya melihat anak saya cenderung mengikuti jawaban teman saat sedang mengisi angket." },
+  { id: 18, text: "Saya melihat anak saya cenderung memilih jawaban yang hanya terlihat paling baik saja." },
+  // Bagian 4: Pernyataan Spesifik (19-27)
+  { id: 19, text: "Saya melihat anak saya biasanya langsung setuju dengan aturan bangun pagi tanpa banyak berpikir." },
+  { id: 20, text: "Saya melihat anak saya cenderung mengikuti kegiatan ibadah tanpa bertanya atau berpikir lebih lanjut." },
+  { id: 21, text: "Saya melihat anak saya biasanya setuju saja ketika diminta berolahraga tanpa mempertimbangkan kondisi fisiknya." },
+  { id: 22, text: "Saya melihat anak saya sering langsung setuju bahwa belajar itu penting tanpa memikirkan alasannya." },
+  { id: 23, text: "Saya melihat anak saya biasanya mengikuti aturan mengerjakan tugas tanpa berpikir panjang." },
+  { id: 24, text: "Saya melihat anak saya cenderung setuju membantu teman tanpa mempertimbangkan keadaan dirinya sendiri." },
+  { id: 25, text: "Saya melihat anak saya biasanya mengikuti anjuran hidup bersih tanpa berpikir alasan pentingnya." },
+  { id: 26, text: "Saya melihat anak saya sering menjawab setuju karena merasa itu adalah jawaban yang paling baik di mata orang lain." },
+  { id: 27, text: "Saya melihat anak saya cenderung mengikuti jawaban teman saat menjawab pertanyaan tentang kebiasaan baik." },
+];
+
+export default function AngketMingguanOrangTuaPage() {
+  const navigate = useNavigate();
+  const [responses, setResponses] = useState({});
+  const [loading, setLoading] = useState(false);
+
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "primary",
+    confirmText: "Simpan",
+    onConfirm: () => { },
+    showCancel: true
+  });
+
+  const userProfile = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const handleRadioChange = (id, value) => {
+    setResponses((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const progress = useMemo(() => {
+    const answered = Object.keys(responses).length;
+    return Math.round((answered / PERNYATAAN_LIST.length) * 100);
+  }, [responses]);
+
+  const closeModal = () => setModalConfig(prev => ({ ...prev, isOpen: false }));
+
+  const handleSaveClick = () => {
+    setModalConfig({
+      isOpen: true,
+      title: "Simpan Observasi? 👨‍👩‍👧",
+      type: "secondary",
+      confirmText: "Ya, Simpan",
+      cancelText: "Batal",
+      onConfirm: executeSubmit,
+      showCancel: true,
+      message: (
+         <div className="text-center py-1">
+             <p className="font-black text-lg leading-snug mb-2">Lanjutkan Menyimpan?</p>
+             <p className="text-sm font-bold text-base-content/60">Hasil pemantauan Anda sangat berharga bagi perkembangan karakter anak tercinta.</p>
+         </div>
+      )
+    });
+  };
+
+  const executeSubmit = async () => {
+    setLoading(true);
+    const formattedResponses = {};
+    Object.keys(responses).forEach((key) => { formattedResponses[`p${key}`] = responses[key]; });
+
+    const payload = {
+      idSekolah: userProfile.idSekolah,
+      idKelas: userProfile.idKelas,
+      nisn: userProfile.nisn,
+      namaSiswa: userProfile.nama,
+      ...formattedResponses
+    };
+
+    try {
+      const result = await angketOrangTuaService.submit(payload);
+      if (result.success) {
+        setModalConfig({
+          isOpen: true,
+          title: "Berhasil! 🎉",
+          type: "success",
+          confirmText: "Selesai",
+          onConfirm: () => { 
+             closeModal(); 
+             navigate("/orang-tua/teori"); // navigate somewhere appropriate
+          },
+          showCancel: false,
+          message: (
+            <div className="text-center flex flex-col items-center py-2">
+              <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center text-3xl mb-4 shadow-inner animate-bounce">
+                 <FaCheckDouble />
+              </div>
+              <p className="font-black text-xl leading-tight text-base-content mb-1">Observasi Disimpan!</p>
+              <p className="text-sm font-bold text-base-content/60 leading-relaxed">
+                 Terima kasih Ayah/Bunda telah meluangkan waktu memantau perkembangan ananda secara berkala. 💙
+              </p>
+            </div>
+          )
+        });
+      } else {
+         throw new Error(result.message);
+      }
+    } catch (err) {
+      setModalConfig({
+        isOpen: true,
+        title: "Gagal Menyimpan 😅",
+        type: "error",
+        confirmText: "Tutup",
+        onConfirm: closeModal,
+        showCancel: false,
+        message: (
+          <div className="text-center flex flex-col items-center py-2">
+            <FaExclamationTriangle className="text-4xl text-error mb-2" />
+            <p className="font-bold text-base-content">{err.message || "Terdapat kendala koneksi server."}</p>
+          </div>
+        )
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getVisualConfig = (val) => {
+    const map = {
+      1: { emoji: "❌", label: "Sangat Tidak Sesuai", class: "peer-checked:bg-error peer-checked:text-white" },
+      2: { emoji: "👎", label: "Tidak Sesuai", class: "peer-checked:bg-warning peer-checked:text-white" },
+      3: { emoji: "🤝", label: "Cukup Sesuai", class: "peer-checked:bg-neutral peer-checked:text-white" },
+      4: { emoji: "👍", label: "Sesuai", class: "peer-checked:bg-secondary peer-checked:text-white" },
+      5: { emoji: "✅", label: "Sangat Sesuai", class: "peer-checked:bg-success peer-checked:text-white" },
+    };
+    return map[val] || {};
+  };
+
+  return (
+    <div className="flex flex-col gap-6 pt-2 pb-32 px-1">
+      <CustomModal
+        isOpen={modalConfig.isOpen}
+        onClose={!loading ? closeModal : null}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        type={modalConfig.type}
+        confirmText={modalConfig.confirmText}
+        cancelText={modalConfig.cancelText}
+        isLoading={loading}
+      >
+        {modalConfig.message}
+      </CustomModal>
+
+      {/* Page Header */}
+      <div className="flex flex-col">
+          <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
+             <span className="w-6 h-0.5 bg-secondary rounded-full" />
+             Pemantauan Mingguan
+          </div>
+          <h1 className="text-2xl font-black text-base-content leading-tight">
+             Jurnal Observasi Wali Murid 🔍
+          </h1>
+          <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">Mohon isi kondisi riil yang Ayah/Bunda amati pada ananda.</p>
+      </div>
+
+      {/* Persistent Sticky Header Tracker */}
+      <div className="sticky top-2 z-[30] transition-all duration-300">
+        <div className="card bg-white/90 backdrop-blur-md shadow-glow shadow-secondary/20 border border-secondary/20 rounded-2xl p-3">
+          <div className="flex justify-between items-center mb-2">
+             <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm transition-colors duration-500 ${progress === 100 ? 'bg-success' : 'bg-secondary'}`}>
+                    {progress === 100 ? <FaCheckCircle /> : <span className="text-xs font-black">{Object.keys(responses).length}</span>}
+                </div>
+                <div className="flex flex-col">
+                   <span className="text-[10px] font-black text-base-content/40 uppercase leading-none">Progress</span>
+                   <span className="text-sm font-black text-base-content leading-tight">Input Selesai</span>
+                </div>
+             </div>
+             <div className="text-right font-black text-2xl text-secondary leading-none font-mono tracking-tighter flex items-baseline">
+                 {progress}<span className="text-xs opacity-50">%</span>
+             </div>
+          </div>
+          
+          <div className="relative w-full bg-base-300 rounded-full h-3 overflow-hidden p-[1px]">
+             <motion.div 
+                className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/80 shadow-sm shadow-secondary/30"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ type: "spring", stiffness: 40 }}
+             />
+          </div>
+        </div>
+      </div>
+
+      {/* List Containers */}
+      <div className="flex flex-col gap-4">
+        {PERNYATAAN_LIST.map((item, index) => {
+          const isAnswered = !!responses[item.id];
+          const currentSection = (index === 0 && "📋 Perilaku Keseharian") || 
+                                 (index === 6 && "📊 Persepsi Kondisi Diri") ||
+                                 (index === 12 && "💡 Pola Pikir Anak") ||
+                                 (index === 18 && "🔗 Kepatuhan & Respons");
+
+          return (
+            <React.Fragment key={item.id}>
+              {currentSection && (
+                 <div className="mt-4 mb-1 px-1 flex items-center gap-2">
+                    <h3 className="text-sm font-black tracking-wide text-base-content/70 uppercase">{currentSection}</h3>
+                    <div className="flex-1 h-[1px] bg-base-300" />
+                 </div>
+              )}
+
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-20px" }}
+                className={`card bg-base-100 border-2 transition-all duration-300 rounded-3xl overflow-hidden
+                  ${isAnswered ? 'border-secondary/30 shadow-md shadow-secondary/5 bg-gradient-to-br from-white to-secondary/5' : 'border-base-300/60 shadow-sm'}
+                `}
+              >
+                <div className="p-5 flex flex-col gap-4">
+                   <div className="flex gap-3">
+                      <div className={`w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-black transition-colors shadow-sm
+                        ${isAnswered ? 'bg-secondary text-white' : 'bg-base-200 text-base-content/40'}
+                      `}>
+                        {item.id}
+                      </div>
+                      <p className="text-sm font-bold leading-snug text-base-content/80">
+                        {item.text}
+                      </p>
+                   </div>
+
+                   <div className="pt-2 border-t border-base-200 border-dashed">
+                      <div className="grid grid-cols-5 gap-2 relative">
+                         {[1, 2, 3, 4, 5].map(val => {
+                            const config = getVisualConfig(val);
+                            return (
+                               <label key={val} className="flex flex-col items-center group cursor-pointer">
+                                  <input 
+                                     type="radio" 
+                                     name={`ans-${item.id}`}
+                                     checked={responses[item.id] === val}
+                                     onChange={() => handleRadioChange(item.id, val)}
+                                     className="peer sr-only"
+                                  />
+                                  <div className={`w-full aspect-square flex flex-col items-center justify-center rounded-2xl border-2 border-base-300 bg-base-100 text-base-content/40 font-black transition-all duration-300 active:scale-90 hover:border-secondary/40 hover:bg-base-200/50 ${config.class}`}>
+                                      <span className="text-xl leading-none group-hover:scale-110 transition-transform">{config.emoji}</span>
+                                      <span className="text-[9px] mt-0.5">{val}</span>
+                                  </div>
+                               </label>
+                            )
+                         })}
+                      </div>
+
+                      <div className="h-5 mt-2 relative flex items-center justify-center">
+                        <AnimatePresence mode="wait">
+                           {isAnswered ? (
+                              <motion.div 
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="text-[10px] font-black text-secondary uppercase tracking-widest px-3 py-1 bg-secondary/10 rounded-full flex items-center gap-1"
+                              >
+                                 {getVisualConfig(responses[item.id]).label}
+                              </motion.div>
+                           ) : (
+                              <span className="text-[9px] font-black text-base-content/30 uppercase tracking-widest">Belum Dipilih</span>
+                           )}
+                        </AnimatePresence>
+                      </div>
+                   </div>
+                </div>
+              </motion.div>
+            </React.Fragment>
+          )
+        })}
+      </div>
+
+      {/* Fixed Persistent Bottom Block */}
+      <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-30 pointer-events-none">
+         <div className="pointer-events-auto bg-base-100 border border-base-300 p-3 rounded-2xl shadow-glow shadow-secondary/20 flex flex-col gap-2 animate-in slide-in-from-bottom-5 duration-300">
+            {progress < 100 && (
+               <div className="text-center text-[10px] font-black text-error tracking-wide animate-pulse flex items-center justify-center gap-1">
+                   ✍️ Tersisa {PERNYATAAN_LIST.length - Object.keys(responses).length} poin lagi
+               </div>
+            )}
+            
+            <CustomButton
+               type="secondary"
+               onClick={handleSaveClick}
+               disabled={progress < 100 || loading}
+               className={`w-full py-4 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 shadow-secondary/20 transition-all active:scale-95 ${progress < 100 ? 'grayscale contrast-50' : ''}`}
+            >
+               {loading ? (
+                  <span className="loading loading-spinner loading-sm" />
+               ) : (
+                  <>
+                     {progress === 100 ? <FaCheckCircle /> : <FaSave className="opacity-50" />}
+                     {progress === 100 ? "SIMPAN OBSERVASI SEKARANG" : "LENGKAPI DULU"}
+                  </>
+               )}
+            </CustomButton>
+         </div>
+      </div>
+    </div>
+  );
+}
