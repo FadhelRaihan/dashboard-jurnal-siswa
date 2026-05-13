@@ -33,9 +33,7 @@ export default function KaihPanduanPage() {
         setLoading(true);
         try {
             const ress = await panduanService.getAll();
-            console.log("DEBUG PANDUAN RESS:", ress);
             if (ress?.status) {
-                console.log("DEBUG PANDUAN ITEMS:", ress?.data?.items);
                 setDataPanduan(ress?.data?.items || []);
             }
         } catch (err) {
