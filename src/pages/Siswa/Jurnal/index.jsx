@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from "react"
+import React, { useMemo, useState, useEffect } from "react"
 import { Link } from "react-router-dom"
+import { formatDate } from "../../../utils/helper"
 import CustomButton from "../../../components/atoms/CustomButton"
 import KaihPointCard from "../../../components/organism/KaihPointCard"
 import KaihPointModal from "../../../components/organism/KaihPointModal"
@@ -136,12 +137,23 @@ const photoKeys = {
   tidur_cepat: "fotoTidur",
 }
 
+const getTodayDateString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function SiswaJurnalPage() {
   const [activeItemId, setActiveItemId] = useState(null)
   const activeItem = KAIH_ITEMS.find((x) => x.id === activeItemId) ?? null
 
   const [loading, setLoading] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0])
+  const [checkingStatus, setCheckingStatus] = useState(true)
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false)
+  const [todayData, setTodayData] = useState(null)
+  const [selectedDate] = useState(getTodayDateString())
 
   const [photos, setPhotos] = useState({
     fotoBangunPagi: null,
@@ -154,6 +166,57 @@ export default function SiswaJurnalPage() {
   })
 
   const userProfile = JSON.parse(localStorage.getItem("user") || "{}")
+
+  useEffect(() => {
+    const checkTodayStatus = async () => {
+      const validNisn = userProfile.nisn || userProfile.NISN
+      const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
+
+      const isCorrupt = (val) => {
+        if (!val) return true
+        const strVal = String(val).toLowerCase().trim()
+        return strVal === "" || strVal === "undefined" || strVal === "null"
+      }
+
+      if (isCorrupt(validNisn) || isCorrupt(validNama)) {
+        setCheckingStatus(false)
+        return
+      }
+
+      try {
+        const today = getTodayDateString()
+        // Mengambil data dengan limit tinggi dan memfilternya di sisi klien
+        const res = await jurnalKaihService.getHistory({ limit: 1000 })
+        
+        if (res && res.status && res.data && Array.isArray(res.data.items)) {
+          const existing = res.data.items.find((item) => {
+            const matchNisn = String(item.nisn) === String(validNisn)
+            
+            if (!item.tanggal) return false
+            // Konversi string tanggal ISO agar menyesuaikan waktu lokal pengguna (WIB)
+            const itemDate = new Date(item.tanggal)
+            const year = itemDate.getFullYear()
+            const month = String(itemDate.getMonth() + 1).padStart(2, '0')
+            const day = String(itemDate.getDate()).padStart(2, '0')
+            const itemDateStr = `${year}-${month}-${day}`
+            
+            return matchNisn && itemDateStr === today
+          })
+
+          if (existing) {
+            setAlreadySubmitted(true)
+            setTodayData(existing)
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memeriksa riwayat jurnal hari ini:", err)
+      } finally {
+        setCheckingStatus(false)
+      }
+    }
+
+    checkTodayStatus()
+  }, [])
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -484,7 +547,11 @@ export default function SiswaJurnalPage() {
           isOpen: true,
           title: "Berhasil! 🎉",
           type: "success",
-          onConfirm: () => setModalConfig((p) => ({ ...p, isOpen: false })),
+          onConfirm: () => {
+            setModalConfig((p) => ({ ...p, isOpen: false }))
+            setAlreadySubmitted(true)
+            setTodayData({ totalPoin: total })
+          },
           message: (
             <div className="text-center flex flex-col items-center py-4">
               <div className="w-20 h-20 rounded-full bg-success/10 text-success flex items-center justify-center text-4xl mb-4 shadow-inner animate-bounce">
@@ -545,83 +612,137 @@ export default function SiswaJurnalPage() {
         {modalConfig.message}
       </CustomModal>
 
-      {/* Main Header Jurnal with Background Accent */}
-      <div className="px-1 mb-6">
-          <div className="flex items-center justify-between mb-2">
-             <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest">
-                <span className="w-6 h-0.5 bg-primary rounded-full" />
-                Agenda Hari Ini
-             </div>
-          </div>
-          <h1 className="text-3xl font-black text-base-content tracking-tight leading-none mb-1 flex items-center gap-2">
-             📝 Isi Jurnal 7 KAIH
-          </h1>
-          <p className="text-sm font-bold text-base-content/50 tracking-tight">Catat semua kebiasaan baikmu hari ini!</p>
-      </div>
-
-      {/* Sticky/Dynamic Date Picker Panel */}
-      <div className="card bg-base-100 shadow-md rounded-2xl border border-base-300/60 mb-6 overflow-hidden hover:border-primary/30 transition-colors">
-        <div className="bg-gradient-to-r from-primary/5 to-transparent h-1.5 w-full" />
-        <div className="p-4 flex items-center gap-4">
-           <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
-              <FaRegCalendarAlt />
-           </div>
-           <div className="flex-1 space-y-0.5">
-              <label htmlFor="tanggal" className="text-xs font-black text-base-content/40 uppercase tracking-wider">Pilih Tanggal Catatan</label>
-              <input
-                id="tanggal"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full bg-transparent text-base font-black text-base-content focus:outline-none select-none cursor-pointer"
-              />
-           </div>
+      {checkingStatus ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 animate-in fade-in duration-300 mt-10">
+          <span className="loading loading-spinner loading-lg text-primary scale-125"></span>
+          <span className="text-xs font-black text-base-content/40 uppercase tracking-widest animate-pulse">Memeriksa Status Jurnal...</span>
         </div>
-      </div>
-
-      <div className="px-1 mb-3 flex items-center justify-between">
-         <h3 className="text-lg font-black text-base-content/80 tracking-tight">🎯 Aktivitas Harian</h3>
-         <span className="badge badge-neutral font-extrabold rounded-lg shadow-sm py-2.5 px-3 text-[10px] uppercase">KLIK KARTU</span>
-      </div>
-
-      {/* Grid Grid Items for Inputs */}
-      <div className="grid grid-cols-2 gap-4">
-        {KAIH_ITEMS.map((item) => (
-          <KaihPointCard
-            key={item.id}
-            item={item}
-            selectedLabel={getSelectedLabel(item.id)}
-            onClick={() => setActiveItemId(item.id)}
-          />
-        ))}
-      </div>
-
-      {/* ✨ PRESTIGE INLINE ACTION PANEL ✨ */}
-      <div className="mt-8 w-full max-w-md mx-auto px-1 animate-in slide-in-from-bottom-6 duration-500">
-        <div className="bg-white rounded-3xl shadow-xl border border-base-300/60 p-4 flex items-center justify-between gap-5 hover:shadow-2xl transition-all duration-300">
-          <div className="flex flex-col pl-3">
-             <span className="text-[10px] font-black text-base-content/40 uppercase tracking-widest leading-none mb-1.5">Total Skor</span>
-             <div className="font-black text-3xl leading-none text-primary flex items-baseline gap-0.5">
-                 {total} <span className="text-xs opacity-50 font-black uppercase tracking-tighter">Poin</span>
-             </div>
-          </div>
-          
-          <CustomButton
-            type="primary"
-            className="h-14 px-8 text-sm font-black rounded-2xl shadow-xl flex-1 shadow-primary/25 group border-none hover:scale-[1.02] active:scale-95 transition-all"
-            onClick={handleSubmit}
-            disabled={loading}
-          >
-            {loading ? (
-              <span className="loading loading-spinner loading-sm"></span>
-            ) : (
-              <div className="flex items-center justify-center gap-2">
-                <FaSave className="text-base" /> <span>SIMPAN JURNAL</span>
+      ) : alreadySubmitted ? (
+        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500 mt-4">
+          <div className="px-1 mb-2">
+              <div className="flex items-center gap-2 text-success font-black text-sm uppercase tracking-widest mb-2">
+                 <span className="w-6 h-0.5 bg-success rounded-full" />
+                 Laporan Terkirim
               </div>
-            )}
-          </CustomButton>
+              <h1 className="text-3xl font-black text-base-content tracking-tight leading-none mb-1 flex items-center gap-2">
+                 📝 Jurnal 7 KAIH
+              </h1>
+          </div>
+
+          <div className="bg-base-100 border border-base-300/60 shadow-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden mt-2 hover:shadow-2xl transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-success to-emerald-400"></div>
+            
+            <div className="w-24 h-24 rounded-full bg-success/10 text-success flex items-center justify-center text-5xl shadow-inner border-4 border-success/5 mt-2">
+                🎉
+            </div>
+            
+            <div className="mt-6 space-y-2">
+                <h2 className="text-2xl font-black text-base-content tracking-tight leading-tight">Jurnal Kamu Sudah Terisi!</h2>
+                <p className="text-sm font-bold text-base-content/50 max-w-xs mx-auto leading-relaxed">
+                    Luar biasa! Kamu sudah mencatat seluruh aktivitas baikmu hari ini pada tanggal <span className="text-base-content/80 font-black">{formatDate(selectedDate)}</span>.
+                </p>
+            </div>
+
+            <div className="bg-success/5 border-2 border-success/10 rounded-3xl p-6 w-full mt-8 flex items-center justify-between gap-4 shadow-inner">
+                <div className="text-left">
+                    <span className="text-[10px] font-black text-base-content/40 uppercase tracking-widest leading-none block mb-1">Total Skor Hari Ini</span>
+                    <div className="text-3xl font-black text-success leading-none flex items-baseline gap-0.5">
+                        {todayData?.totalPoin || total} <span className="text-xs font-black opacity-60 uppercase tracking-tighter">Poin</span>
+                    </div>
+                </div>
+                <span className="badge badge-success font-black px-3 py-3 text-[10px] rounded-xl border-none tracking-wide shadow-sm shadow-success/20">SELESAI</span>
+            </div>
+
+            <div className="mt-8 w-full">
+              <Link 
+                to="/siswa" 
+                className="btn btn-primary h-14 px-8 w-full font-black text-xs rounded-2xl shadow-xl shadow-primary/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:scale-95 border-none text-white uppercase tracking-wider"
+              >
+                KEMBALI KE BERANDA
+              </Link>
+            </div>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Main Header Jurnal with Background Accent */}
+          <div className="px-1 mb-6 animate-in fade-in duration-500">
+              <div className="flex items-center justify-between mb-2">
+                 <div className="flex items-center gap-2 text-primary font-black text-sm uppercase tracking-widest">
+                    <span className="w-6 h-0.5 bg-primary rounded-full" />
+                    Agenda Hari Ini
+                 </div>
+              </div>
+              <h1 className="text-3xl font-black text-base-content tracking-tight leading-none mb-1 flex items-center gap-2">
+                 📝 Isi Jurnal 7 KAIH
+              </h1>
+              <p className="text-sm font-bold text-base-content/50 tracking-tight">Catat semua kebiasaan baikmu hari ini!</p>
+          </div>
+
+          {/* Static Today's Date Panel */}
+          <div className="card bg-base-100 shadow-md rounded-2xl border border-base-300/60 mb-6 overflow-hidden animate-in fade-in duration-500">
+            <div className="bg-gradient-to-r from-primary/5 to-transparent h-1.5 w-full" />
+            <div className="p-4 flex items-center gap-4">
+               <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xl flex-shrink-0 shadow-inner">
+                  <FaRegCalendarAlt />
+               </div>
+               <div className="flex-1 space-y-0.5">
+                  <label className="text-xs font-black text-base-content/40 uppercase tracking-wider block mb-0.5">Tanggal Catatan</label>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-black text-base-content leading-tight">
+                      {formatDate(selectedDate)}
+                    </p>
+                    <span className="badge badge-primary badge-xs font-black px-2 py-1.5 text-[9px] uppercase border-none shadow-sm shadow-primary/20 animate-pulse">Hari Ini</span>
+                  </div>
+               </div>
+            </div>
+          </div>
+
+          <div className="px-1 mb-3 flex items-center justify-between animate-in fade-in duration-500">
+             <h3 className="text-lg font-black text-base-content/80 tracking-tight">🎯 Aktivitas Harian</h3>
+             <span className="badge badge-neutral font-extrabold rounded-lg shadow-sm py-2.5 px-3 text-[10px] uppercase">KLIK KARTU</span>
+          </div>
+
+          {/* Grid Grid Items for Inputs */}
+          <div className="grid grid-cols-2 gap-4 animate-in fade-in duration-500">
+            {KAIH_ITEMS.map((item) => (
+              <KaihPointCard
+                key={item.id}
+                item={item}
+                selectedLabel={getSelectedLabel(item.id)}
+                onClick={() => setActiveItemId(item.id)}
+              />
+            ))}
+          </div>
+
+          {/* ✨ PRESTIGE INLINE ACTION PANEL ✨ */}
+          <div className="mt-8 w-full max-w-md mx-auto px-1 animate-in slide-in-from-bottom-6 duration-500">
+            <div className="bg-white rounded-3xl shadow-xl border border-base-300/60 p-4 flex items-center justify-between gap-5 hover:shadow-2xl transition-all duration-300">
+              <div className="flex flex-col pl-3">
+                 <span className="text-[10px] font-black text-base-content/40 uppercase tracking-widest leading-none mb-1.5">Total Skor</span>
+                 <div className="font-black text-3xl leading-none text-primary flex items-baseline gap-0.5">
+                     {total} <span className="text-xs opacity-50 font-black uppercase tracking-tighter">Poin</span>
+                 </div>
+              </div>
+              
+              <CustomButton
+                type="primary"
+                className="h-14 px-8 text-sm font-black rounded-2xl shadow-xl flex-1 shadow-primary/25 group border-none hover:scale-[1.02] active:scale-95 transition-all"
+                onClick={handleSubmit}
+                disabled={loading}
+              >
+                {loading ? (
+                  <span className="loading loading-spinner loading-sm"></span>
+                ) : (
+                  <div className="flex items-center justify-center gap-2">
+                    <FaSave className="text-base" /> <span>SIMPAN JURNAL</span>
+                  </div>
+                )}
+              </CustomButton>
+            </div>
+          </div>
+        </>
+      )}
 
       <KaihPointModal
         open={Boolean(activeItem)}

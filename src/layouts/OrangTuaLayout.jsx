@@ -43,19 +43,19 @@ export default function OrangTuaLayout() {
         </div>
       </header>
 
-      {/* Warm Gradients for Parents */}
+      {/* Warm Gradients for Parents with Deeper Contrast */}
       <div className="relative flex flex-col h-[180px] shrink-0">
-        <div className="absolute inset-0 bg-secondary opacity-75" />
+        <div className="absolute inset-0 bg-secondary opacity-85" />
         <div
           className="absolute inset-0 bg-cover bg-center opacity-40 scale-105 transform transition-all duration-700"
           style={{ backgroundImage: `url(${bgHero})` }}
         />
 
         <div className="relative z-10 flex flex-col items-center justify-center h-full pb-6 px-6 text-center text-white">
-          <h1 className="text-2xl font-black drop-shadow-md tracking-tight">
+          <h1 className="text-2xl font-black drop-shadow-[0_2px_6px_rgba(0,0,0,0.45)] tracking-tight">
             Ayah / Bunda ❤️
           </h1>
-          <p className="text-xs font-bold opacity-95 bg-white/20 px-4 py-1 rounded-full mt-1 backdrop-blur-sm">
+          <p className="text-[11px] font-black bg-black/25 px-4 py-1.5 rounded-full mt-2 backdrop-blur-md text-white border border-white/10 shadow-sm tracking-wide">
             Dashboard Wali Murid
           </p>
         </div>

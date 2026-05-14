@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { FaArrowLeft, FaCheckCircle, FaCheckDouble, FaExclamationTriangle, FaSave } from "react-icons/fa";
 import CustomButton from "../../../components/atoms/CustomButton";
 // eslint-disable-next-line no-unused-vars
@@ -42,9 +42,11 @@ const PERNYATAAN_LIST = [
 ];
 
 export default function AngketMingguanOrangTuaPage() {
-  const navigate = useNavigate();
   const [responses, setResponses] = useState({});
   const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [currentWeekInfo, setCurrentWeekInfo] = useState({ week: 1, month: "", year: 2026 });
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -57,6 +59,73 @@ export default function AngketMingguanOrangTuaPage() {
   });
 
   const userProfile = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Helper to get current week index 1-4
+  const getWeekFromDate = (date) => {
+    const day = date.getDate();
+    if (day <= 7) return 1;
+    if (day <= 14) return 2;
+    if (day <= 21) return 3;
+    return 4;
+  };
+
+  const getIndonesianMonthName = (monthIndex) => {
+    const months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    return months[monthIndex];
+  };
+
+  useEffect(() => {
+    const checkWeeklyStatus = async () => {
+      const validNisn = userProfile.nisn || userProfile.NISN;
+      if (!validNisn) {
+        setCheckingStatus(false);
+        return;
+      }
+
+      const now = new Date();
+      const curWeek = getWeekFromDate(now);
+      const curMonth = now.getMonth();
+      const curYear = now.getFullYear();
+
+      setCurrentWeekInfo({
+        week: curWeek,
+        month: getIndonesianMonthName(curMonth),
+        year: curYear
+      });
+
+      try {
+        // Tarik log penuh dan lakukan saringan client-side
+        const res = await angketOrangTuaService.getHistory({ limit: 1000 });
+        if (res && res.status && res.data && Array.isArray(res.data.items)) {
+          const existing = res.data.items.find((item) => {
+            const matchNisn = String(item.nisn) === String(validNisn);
+            if (!item.waktu_simpan) return false;
+
+            const itemDate = new Date(item.waktu_simpan);
+            const itemWeek = getWeekFromDate(itemDate);
+            const itemMonth = itemDate.getMonth();
+            const itemYear = itemDate.getFullYear();
+
+            // Blokir jika sudah diisi di minggu, bulan, dan tahun yang sama
+            return matchNisn && itemWeek === curWeek && itemMonth === curMonth && itemYear === curYear;
+          });
+
+          if (existing) {
+            setAlreadySubmitted(true);
+          }
+        }
+      } catch (err) {
+        console.error("Gagal memeriksa riwayat angket orang tua:", err);
+      } finally {
+        setCheckingStatus(false);
+      }
+    };
+
+    checkWeeklyStatus();
+  }, []);
 
   const handleRadioChange = (id, value) => {
     setResponses((prev) => ({ ...prev, [id]: value }));
@@ -110,7 +179,7 @@ export default function AngketMingguanOrangTuaPage() {
           confirmText: "Selesai",
           onConfirm: () => { 
              closeModal(); 
-             navigate("/orang-tua/teori"); // navigate somewhere appropriate
+             setAlreadySubmitted(true);
           },
           showCancel: false,
           message: (
@@ -174,157 +243,216 @@ export default function AngketMingguanOrangTuaPage() {
         {modalConfig.message}
       </CustomModal>
 
-      {/* Page Header */}
-      <div className="flex flex-col">
-          <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
-             <span className="w-6 h-0.5 bg-secondary rounded-full" />
-             Pemantauan Mingguan
+      {checkingStatus ? (
+        <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 animate-in fade-in duration-300 mt-10">
+          <span className="loading loading-spinner loading-lg text-secondary scale-125"></span>
+          <span className="text-xs font-black text-base-content/40 uppercase tracking-widest animate-pulse">Memeriksa Riwayat Observasi...</span>
+        </div>
+      ) : alreadySubmitted ? (
+        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500 mt-4 px-1">
+          <div className="flex flex-col">
+              <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
+                 <span className="w-6 h-0.5 bg-secondary rounded-full" />
+                 Laporan Terkirim
+              </div>
+              <h1 className="text-2xl font-black text-base-content leading-tight">
+                 🔍 Observasi Wali Murid
+              </h1>
           </div>
-          <h1 className="text-2xl font-black text-base-content leading-tight">
-             Jurnal Observasi Wali Murid 🔍
-          </h1>
-          <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">Mohon isi kondisi riil yang Ayah/Bunda amati pada ananda.</p>
-      </div>
 
-      {/* Persistent Sticky Header Tracker */}
-      <div className="sticky top-2 z-[30] transition-all duration-300">
-        <div className="card bg-white/90 backdrop-blur-md shadow-glow shadow-secondary/20 border border-secondary/20 rounded-2xl p-3">
-          <div className="flex justify-between items-center mb-2">
-             <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm transition-colors duration-500 ${progress === 100 ? 'bg-success' : 'bg-secondary'}`}>
-                    {progress === 100 ? <FaCheckCircle /> : <span className="text-xs font-black">{Object.keys(responses).length}</span>}
+          <div className="bg-base-100 border border-base-300/60 shadow-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden mt-2 hover:shadow-2xl transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-secondary to-purple-400"></div>
+            
+            <div className="w-24 h-24 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-5xl shadow-inner border-4 border-secondary/5 mt-2">
+                👨‍👩‍👧
+            </div>
+            
+            <div className="mt-6 space-y-2">
+                <h2 className="text-2xl font-black text-base-content tracking-tight leading-tight">Terima Kasih Ayah / Bunda!</h2>
+                <p className="text-sm font-bold text-base-content/50 max-w-xs mx-auto leading-relaxed">
+                    Anda sudah berhasil mengisi jurnal observasi ananda untuk periode <span className="text-base-content/80 font-black">Minggu Ke-{currentWeekInfo.week} {currentWeekInfo.month} {currentWeekInfo.year}</span>.
+                </p>
+            </div>
+
+            <div className="bg-secondary/5 border-2 border-secondary/10 rounded-3xl p-6 w-full mt-8 flex items-center justify-between gap-4 shadow-inner">
+                <div className="text-left">
+                    <span className="text-[10px] font-black text-base-content/40 uppercase tracking-widest leading-none block mb-1">Status Input</span>
+                    <div className="text-2xl font-black text-secondary leading-none flex items-baseline gap-1">
+                        Sudah Masuk
+                    </div>
                 </div>
-                <div className="flex flex-col">
-                   <span className="text-[10px] font-black text-base-content/40 uppercase leading-none">Progress</span>
-                   <span className="text-sm font-black text-base-content leading-tight">Input Selesai</span>
-                </div>
-             </div>
-             <div className="text-right font-black text-2xl text-secondary leading-none font-mono tracking-tighter flex items-baseline">
-                 {progress}<span className="text-xs opacity-50">%</span>
-             </div>
-          </div>
-          
-          <div className="relative w-full bg-base-300 rounded-full h-3 overflow-hidden p-[1px]">
-             <motion.div 
-                className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/80 shadow-sm shadow-secondary/30"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ type: "spring", stiffness: 40 }}
-             />
+                <span className="badge badge-secondary font-black px-3 py-5 text-[10px] rounded-xl border-none tracking-wide shadow-sm shadow-secondary/20">1x SEMINGGU</span>
+            </div>
+
+            <p className="text-xs font-bold text-base-content/40 mt-6">
+               Dukungan & pemantauan Ayah/Bunda sangat berharga bagi perkembangan karakter terbaik ananda. ✨
+            </p>
+
+            <div className="mt-6 w-full">
+              <Link 
+                to="/orang-tua/teori" 
+                className="btn btn-secondary h-14 px-8 w-full font-black text-xs rounded-2xl shadow-xl shadow-secondary/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:scale-95 border-none text-white uppercase tracking-wider"
+              >
+                BACA MATERI PENDUKUNG
+              </Link>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Page Header */}
+          <div className="flex flex-col">
+              <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
+                 <span className="w-6 h-0.5 bg-secondary rounded-full" />
+                 Pemantauan Mingguan
+              </div>
+              <h1 className="text-2xl font-black text-base-content leading-tight">
+                 Jurnal Observasi Wali Murid 🔍
+              </h1>
+              <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">Mohon isi kondisi riil yang Ayah/Bunda amati pada ananda.</p>
+          </div>
 
-      {/* List Containers */}
-      <div className="flex flex-col gap-4">
-        {PERNYATAAN_LIST.map((item, index) => {
-          const isAnswered = !!responses[item.id];
-          const currentSection = (index === 0 && "📋 Perilaku Keseharian") || 
-                                 (index === 6 && "📊 Persepsi Kondisi Diri") ||
-                                 (index === 12 && "💡 Pola Pikir Anak") ||
-                                 (index === 18 && "🔗 Kepatuhan & Respons");
-
-          return (
-            <React.Fragment key={item.id}>
-              {currentSection && (
-                 <div className="mt-4 mb-1 px-1 flex items-center gap-2">
-                    <h3 className="text-sm font-black tracking-wide text-base-content/70 uppercase">{currentSection}</h3>
-                    <div className="flex-1 h-[1px] bg-base-300" />
+          {/* Persistent Sticky Header Tracker */}
+          <div className="sticky top-2 z-[30] transition-all duration-300">
+            <div className="card bg-white/90 backdrop-blur-md shadow-glow shadow-secondary/20 border border-secondary/20 rounded-2xl p-3">
+              <div className="flex justify-between items-center mb-2">
+                 <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm transition-colors duration-500 ${progress === 100 ? 'bg-success' : 'bg-secondary'}`}>
+                        {progress === 100 ? <FaCheckCircle /> : <span className="text-xs font-black">{Object.keys(responses).length}</span>}
+                    </div>
+                    <div className="flex flex-col">
+                       <span className="text-[10px] font-black text-base-content/40 uppercase leading-none">Progress</span>
+                       <span className="text-sm font-black text-base-content leading-tight">Input Selesai</span>
+                    </div>
                  </div>
-              )}
+                 <div className="text-right font-black text-2xl text-secondary leading-none font-mono tracking-tighter flex items-baseline">
+                     {progress}<span className="text-xs opacity-50">%</span>
+                 </div>
+              </div>
+              
+              <div className="relative w-full bg-base-300 rounded-full h-3 overflow-hidden p-[1px]">
+                 <motion.div 
+                    className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/80 shadow-sm shadow-secondary/30"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progress}%` }}
+                    transition={{ type: "spring", stiffness: 40 }}
+                 />
+              </div>
+            </div>
+          </div>
 
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-20px" }}
-                className={`card bg-base-100 border-2 transition-all duration-300 rounded-3xl overflow-hidden
-                  ${isAnswered ? 'border-secondary/30 shadow-md shadow-secondary/5 bg-gradient-to-br from-white to-secondary/5' : 'border-base-300/60 shadow-sm'}
-                `}
-              >
-                <div className="p-5 flex flex-col gap-4">
-                   <div className="flex gap-3">
-                      <div className={`w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-black transition-colors shadow-sm
-                        ${isAnswered ? 'bg-secondary text-white' : 'bg-base-200 text-base-content/40'}
-                      `}>
-                        {item.id}
-                      </div>
-                      <p className="text-sm font-bold leading-snug text-base-content/80">
-                        {item.text}
-                      </p>
+          {/* List Containers */}
+          <div className="flex flex-col gap-4">
+            {PERNYATAAN_LIST.map((item, index) => {
+              const isAnswered = !!responses[item.id];
+              const currentSection = (index === 0 && "📋 Perilaku Keseharian") || 
+                                     (index === 6 && "📊 Persepsi Kondisi Diri") ||
+                                     (index === 12 && "💡 Pola Pikir Anak") ||
+                                     (index === 18 && "🔗 Kepatuhan & Respons");
+
+              return (
+                <React.Fragment key={item.id}>
+                  {currentSection && (
+                     <div className="mt-4 mb-1 px-1 flex items-center gap-2">
+                        <h3 className="text-sm font-black tracking-wide text-base-content/70 uppercase">{currentSection}</h3>
+                        <div className="flex-1 h-[1px] bg-base-300" />
+                     </div>
+                  )}
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-20px" }}
+                    className={`card bg-base-100 border-2 transition-all duration-300 rounded-3xl overflow-hidden
+                      ${isAnswered ? 'border-secondary/30 shadow-md shadow-secondary/5 bg-gradient-to-br from-white to-secondary/5' : 'border-base-300/60 shadow-sm'}
+                    `}
+                  >
+                    <div className="p-5 flex flex-col gap-4">
+                       <div className="flex gap-3">
+                          <div className={`w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-black transition-colors shadow-sm
+                            ${isAnswered ? 'bg-secondary text-white' : 'bg-base-200 text-base-content/40'}
+                          `}>
+                            {item.id}
+                          </div>
+                          <p className="text-sm font-bold leading-snug text-base-content/80">
+                            {item.text}
+                          </p>
+                       </div>
+
+                       <div className="pt-2 border-t border-base-200 border-dashed">
+                          <div className="grid grid-cols-5 gap-2 relative">
+                             {[1, 2, 3, 4, 5].map(val => {
+                                const config = getVisualConfig(val);
+                                return (
+                                   <label key={val} className="flex flex-col items-center group cursor-pointer">
+                                      <input 
+                                         type="radio" 
+                                         name={`ans-${item.id}`}
+                                         checked={responses[item.id] === val}
+                                         onChange={() => handleRadioChange(item.id, val)}
+                                         className="peer sr-only"
+                                      />
+                                      <div className={`w-full aspect-square flex flex-col items-center justify-center rounded-2xl border-2 border-base-300 bg-base-100 text-base-content/40 font-black transition-all duration-300 active:scale-90 hover:border-secondary/40 hover:bg-base-200/50 ${config.class}`}>
+                                          <span className="text-xl leading-none group-hover:scale-110 transition-transform">{config.emoji}</span>
+                                          <span className="text-[9px] mt-0.5">{val}</span>
+                                      </div>
+                                   </label>
+                                )
+                             })}
+                          </div>
+
+                          <div className="h-5 mt-2 relative flex items-center justify-center">
+                            <AnimatePresence mode="wait">
+                               {isAnswered ? (
+                                  <motion.div 
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.9 }}
+                                    className="text-[10px] font-black text-secondary uppercase tracking-widest px-3 py-1 bg-secondary/10 rounded-full flex items-center gap-1"
+                                  >
+                                     {getVisualConfig(responses[item.id]).label}
+                                  </motion.div>
+                               ) : (
+                                  <span className="text-[9px] font-black text-base-content/30 uppercase tracking-widest">Belum Dipilih</span>
+                               )}
+                            </AnimatePresence>
+                          </div>
+                       </div>
+                    </div>
+                  </motion.div>
+                </React.Fragment>
+              )
+            })}
+          </div>
+
+          {/* Fixed Persistent Bottom Block */}
+          <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-30 pointer-events-none">
+             <div className="pointer-events-auto bg-base-100 border border-base-300 p-3 rounded-2xl shadow-glow shadow-secondary/20 flex flex-col gap-2 animate-in slide-in-from-bottom-5 duration-300">
+                {progress < 100 && (
+                   <div className="text-center text-[10px] font-black text-error tracking-wide animate-pulse flex items-center justify-center gap-1">
+                       ✍️ Tersisa {PERNYATAAN_LIST.length - Object.keys(responses).length} poin lagi
                    </div>
-
-                   <div className="pt-2 border-t border-base-200 border-dashed">
-                      <div className="grid grid-cols-5 gap-2 relative">
-                         {[1, 2, 3, 4, 5].map(val => {
-                            const config = getVisualConfig(val);
-                            return (
-                               <label key={val} className="flex flex-col items-center group cursor-pointer">
-                                  <input 
-                                     type="radio" 
-                                     name={`ans-${item.id}`}
-                                     checked={responses[item.id] === val}
-                                     onChange={() => handleRadioChange(item.id, val)}
-                                     className="peer sr-only"
-                                  />
-                                  <div className={`w-full aspect-square flex flex-col items-center justify-center rounded-2xl border-2 border-base-300 bg-base-100 text-base-content/40 font-black transition-all duration-300 active:scale-90 hover:border-secondary/40 hover:bg-base-200/50 ${config.class}`}>
-                                      <span className="text-xl leading-none group-hover:scale-110 transition-transform">{config.emoji}</span>
-                                      <span className="text-[9px] mt-0.5">{val}</span>
-                                  </div>
-                               </label>
-                            )
-                         })}
-                      </div>
-
-                      <div className="h-5 mt-2 relative flex items-center justify-center">
-                        <AnimatePresence mode="wait">
-                           {isAnswered ? (
-                              <motion.div 
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.9 }}
-                                className="text-[10px] font-black text-secondary uppercase tracking-widest px-3 py-1 bg-secondary/10 rounded-full flex items-center gap-1"
-                              >
-                                 {getVisualConfig(responses[item.id]).label}
-                              </motion.div>
-                           ) : (
-                              <span className="text-[9px] font-black text-base-content/30 uppercase tracking-widest">Belum Dipilih</span>
-                           )}
-                        </AnimatePresence>
-                      </div>
-                   </div>
-                </div>
-              </motion.div>
-            </React.Fragment>
-          )
-        })}
-      </div>
-
-      {/* Fixed Persistent Bottom Block */}
-      <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-30 pointer-events-none">
-         <div className="pointer-events-auto bg-base-100 border border-base-300 p-3 rounded-2xl shadow-glow shadow-secondary/20 flex flex-col gap-2 animate-in slide-in-from-bottom-5 duration-300">
-            {progress < 100 && (
-               <div className="text-center text-[10px] font-black text-error tracking-wide animate-pulse flex items-center justify-center gap-1">
-                   ✍️ Tersisa {PERNYATAAN_LIST.length - Object.keys(responses).length} poin lagi
-               </div>
-            )}
-            
-            <CustomButton
-               type="secondary"
-               onClick={handleSaveClick}
-               disabled={progress < 100 || loading}
-               className={`w-full py-4 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 shadow-secondary/20 transition-all active:scale-95 ${progress < 100 ? 'grayscale contrast-50' : ''}`}
-            >
-               {loading ? (
-                  <span className="loading loading-spinner loading-sm" />
-               ) : (
-                  <>
-                     {progress === 100 ? <FaCheckCircle /> : <FaSave className="opacity-50" />}
-                     {progress === 100 ? "SIMPAN OBSERVASI SEKARANG" : "LENGKAPI DULU"}
-                  </>
-               )}
-            </CustomButton>
-         </div>
-      </div>
+                )}
+                
+                <CustomButton
+                   type="secondary"
+                   onClick={handleSaveClick}
+                   disabled={progress < 100 || loading}
+                   className={`w-full py-4 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 shadow-secondary/20 transition-all active:scale-95 ${progress < 100 ? 'grayscale contrast-50' : ''}`}
+                >
+                   {loading ? (
+                      <span className="loading loading-spinner loading-sm" />
+                   ) : (
+                      <>
+                         {progress === 100 ? <FaCheckCircle /> : <FaSave className="opacity-50" />}
+                         {progress === 100 ? "SIMPAN OBSERVASI SEKARANG" : "LENGKAPI DULU"}
+                      </>
+                   )}
+                </CustomButton>
+             </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
