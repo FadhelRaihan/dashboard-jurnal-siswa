@@ -81,11 +81,11 @@ export default function DashboardPage() {
                         </div>
                         <h2 className="font-black text-lg text-base-content">Video Panduan</h2>
                     </div>
-                    <div className="card-body p-5 items-center">
-                        <div className="w-full rounded-2xl overflow-hidden border border-base-300 shadow-lg relative group-hover:shadow-xl transition-all">
+                    <div className="card-body p-3 sm:p-5 items-center w-full">
+                        <div className="w-full aspect-video rounded-2xl overflow-hidden border border-base-300 shadow-lg relative group-hover:shadow-xl transition-all bg-black">
                             <iframe
                                 src="https://drive.google.com/file/d/1epjKjj1sbCz7IOEevdNAzv2YnoGLstgk/preview"
-                                className="w-full aspect-video bg-black"
+                                className="absolute top-0 left-0 w-full h-full border-none"
                                 allow="autoplay"
                                 allowFullScreen
                             />

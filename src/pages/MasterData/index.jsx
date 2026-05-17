@@ -371,7 +371,7 @@ export default function MasterDataPage() {
                             <input
                                 type="text"
                                 placeholder="Cari nama sekolah..."
-                                className="input input-bordered bg-white/70 backdrop-blur-md border-2 border-base-300 focus:border-primary font-bold pl-10 rounded-2xl w-full sm:w-64 text-sm transition-all"
+                                className="input input-bordered bg-white/70 backdrop-blur-md border-2 border-base-300 focus:border-primary font-bold pl-10 rounded-2xl w-full text-sm transition-all"
                                 value={searchInputValue}
                                 onChange={handleSearchChange}
                             />
@@ -384,7 +384,7 @@ export default function MasterDataPage() {
                                 </button>
                             )}
                         </div>
-                        <CustomButton type="primary" onClick={handleAddNew} className="font-black shadow-md shadow-primary/30 pl-5 pr-6 rounded-2xl h-12">
+                        <CustomButton type="primary" onClick={handleAddNew} className="font-black shadow-md shadow-primary/30 pl-5 pr-6 rounded-2xl h-12 w-full sm:w-auto">
                             <FaPlus className="text-sm" /> Tambah Sekolah
                         </CustomButton>
                     </div>
@@ -415,28 +415,28 @@ export default function MasterDataPage() {
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <CustomButton type="accent" outline onClick={() => setIsResetModalOpen(true)} className="font-bold rounded-xl text-xs px-4 py-3">
+                    <div className="flex flex-col sm:flex-row flex-wrap items-center gap-2 w-full lg:w-auto">
+                        <CustomButton type="accent" outline onClick={() => setIsResetModalOpen(true)} className="font-bold rounded-xl text-xs px-4 py-3 w-full sm:w-auto">
                             <FaTrashAlt /> Reset Kelas
                         </CustomButton>
                         <div className="w-[1px] h-8 bg-base-300 mx-1 hidden sm:block" />
-                        <CustomButton type="info" onClick={handleDownloadTemplate} className="font-black rounded-xl shadow-sm pl-5 pr-6 h-12">
+                        <CustomButton type="info" onClick={handleDownloadTemplate} className="font-black rounded-xl shadow-sm pl-5 pr-6 h-12 w-full sm:w-auto">
                             <FaDownload className="text-sm" /> Template CSV
                         </CustomButton>
-                        <CustomButton type="primary" onClick={() => setIsImportOpen(true)} className="font-black shadow-md shadow-primary/30 pl-5 pr-6 rounded-2xl h-12">
+                        <CustomButton type="primary" onClick={() => setIsImportOpen(true)} className="font-black shadow-md shadow-primary/30 pl-5 pr-6 rounded-2xl h-12 w-full sm:w-auto">
                             <FaUpload className="text-sm" /> Import Masal
                         </CustomButton>
                     </div>
                 </div>
 
                 {/* Sticky-ish Filter Subbar Siswa */}
-                <div className="px-6 py-5 bg-base-200/20 flex flex-wrap gap-4 items-center border-b border-base-300/50">
-                    <div className="flex items-center gap-2 text-xs font-black text-base-content/40 uppercase tracking-widest min-w-fit mr-2">
+                <div className="px-6 py-5 bg-base-200/20 flex flex-col sm:flex-row flex-wrap gap-4 items-center border-b border-base-300/50">
+                    <div className="flex items-center self-start sm:self-auto gap-2 text-xs font-black text-base-content/40 uppercase tracking-widest min-w-fit mr-2">
                         <span className="w-2 h-2 bg-info rounded-full animate-pulse"></span>
                         Filter Data:
                     </div>
                     <select
-                        className="select select-bordered border-2 border-base-300 focus:border-info font-bold text-sm rounded-xl min-w-[220px] bg-base-100 shadow-sm focus:outline-none"
+                        className="select select-bordered border-2 border-base-300 focus:border-info font-bold text-sm rounded-xl w-full sm:w-auto sm:min-w-[220px] bg-base-100 shadow-sm focus:outline-none"
                         value={filterSchoolId}
                         onChange={(e) => setFilterSchoolId(e.target.value)}
                     >
@@ -447,7 +447,7 @@ export default function MasterDataPage() {
                     </select>
 
                     <select
-                        className="select select-bordered border-2 border-base-300 focus:border-info font-bold text-sm rounded-xl min-w-[180px] bg-base-100 shadow-sm focus:outline-none disabled:bg-base-200/50 disabled:border-base-200"
+                        className="select select-bordered border-2 border-base-300 focus:border-info font-bold text-sm rounded-xl w-full sm:w-auto sm:min-w-[180px] bg-base-100 shadow-sm focus:outline-none disabled:bg-base-200/50 disabled:border-base-200"
                         disabled={!filterSchoolId}
                         value={filterClassId}
                         onChange={(e) => setFilterClassId(e.target.value)}
@@ -458,7 +458,7 @@ export default function MasterDataPage() {
                         ))}
                     </select>
 
-                    <div className="relative flex-1 min-w-[280px]">
+                    <div className="relative w-full sm:flex-1 sm:min-w-[280px]">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-base-content/40">
                            <FaSearch className="text-sm"/>
                         </div>

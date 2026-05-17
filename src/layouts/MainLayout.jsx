@@ -213,7 +213,7 @@ export default function MainLayout() {
                 </header>
 
                 {/* Modern Glassmorphism Overlapping Pill Navigation */}
-                <nav className="sticky top-4 z-50 mx-auto max-w-6xl -mt-10 bg-base-100/90 backdrop-blur-xl border border-white shadow-2xl shadow-base-content/10 rounded-3xl md:rounded-[2.5rem] transition-all duration-300">
+                <nav className="sticky top-4 z-50 mx-4 lg:mx-auto max-w-6xl -mt-10 bg-base-100/90 backdrop-blur-xl border border-white shadow-2xl shadow-base-content/10 rounded-3xl md:rounded-[2.5rem] transition-all duration-300">
                     <div className="px-4 py-3 overflow-x-auto no-scrollbar">
                         <div className="flex items-center justify-start md:justify-center gap-1.5 md:gap-2 min-w-max md:min-w-full">
                             {menus.map((menu, index) => (
