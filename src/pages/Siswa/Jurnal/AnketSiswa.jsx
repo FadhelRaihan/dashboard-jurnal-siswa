@@ -265,11 +265,11 @@ export default function AngketMingguanSiswaPage() {
 
   const getVisualConfig = (val) => {
     const map = {
-      1: { emoji: "😡", label: "Sangat Tidak Setuju", class: "peer-checked:bg-error peer-checked:text-white" },
-      2: { emoji: "🙁", label: "Tidak Setuju", class: "peer-checked:bg-warning peer-checked:text-white" },
-      3: { emoji: "😐", label: "Netral", class: "peer-checked:bg-neutral peer-checked:text-white" },
-      4: { emoji: "🙂", label: "Setuju", class: "peer-checked:bg-info peer-checked:text-white" },
-      5: { emoji: "😄", label: "Sangat Setuju", class: "peer-checked:bg-success peer-checked:text-white" },
+      1: { emoji: "😡", label: "Tidak Pernah", class: "peer-checked:bg-error peer-checked:text-white" },
+      2: { emoji: "🙁", label: "Jarang", class: "peer-checked:bg-warning peer-checked:text-white" },
+      3: { emoji: "😐", label: "Kadang-Kadang", class: "peer-checked:bg-neutral peer-checked:text-white" },
+      4: { emoji: "🙂", label: "Sering", class: "peer-checked:bg-info peer-checked:text-white" },
+      5: { emoji: "😄", label: "Selalu", class: "peer-checked:bg-success peer-checked:text-white" },
     };
     return map[val] || {};
   };
