@@ -18,17 +18,20 @@ export const studentColumns = (schools, onDelete, role) => [
   {
     header: "Sekolah",
     render: (row) => {
-      return row.namaSekolah || '-';
+      const school = schools?.find(s => String(s.idSekolah) === String(row.idSekolah));
+      return school ? school.namaSekolah : '-';
     }
   },
   {
     header: "Kelas",
     render: (row) => {
-      return row.detailKelas ? (
+      const school = schools?.find(s => String(s.idSekolah) === String(row.idSekolah));
+      const classObj = school?.kelas?.find(k => String(k.idKelas) === String(row.idKelas));
+      return classObj ? (
         <div>
-          <span className="badge badge-primary px-2">Kelas {row.detailKelas}</span>
+          <span className="badge badge-primary px-2">{classObj.namaKelas || `Kelas ${classObj.kelas}`}</span>
           <div className="text-xs text-gray-500 mt-1">
-            {row.namaWaliKelas}
+            {classObj.namaWaliKelas}
           </div>
         </div>
       ) : '-';
@@ -37,7 +40,9 @@ export const studentColumns = (schools, onDelete, role) => [
   {
     header: "Tahun Ajaran",
     render: (row) => {
-      return row.tahunAjaran || '-';
+      const school = schools?.find(s => String(s.idSekolah) === String(row.idSekolah));
+      const classObj = school?.kelas?.find(k => String(k.idKelas) === String(row.idKelas));
+      return classObj ? classObj.tahunAjaran : '-';
     }
   },
   {

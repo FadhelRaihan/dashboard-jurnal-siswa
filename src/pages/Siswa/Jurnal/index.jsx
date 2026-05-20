@@ -18,10 +18,12 @@ import {
   FaCheckDouble,
   FaTimes,
   FaCamera,
-  FaRegCalendarAlt
+  FaRegCalendarAlt,
+  FaLightbulb
 } from "react-icons/fa"
 import { jurnalKaihService } from "../../../services"
 import CustomModal from "../../../components/organism/CustomModal"
+import panduanJurnalImg from "../../../assets/panduan-jurnal-siswa.png"
 
 const KAIH_ITEMS = [
   {
@@ -30,11 +32,11 @@ const KAIH_ITEMS = [
     icon: <FaRegClock />,
     ui: { bg: "bg-secondary/10", border: "border-secondary/30", text: "text-secondary" },
     options: [
-      { value: 4, label: "Bangun pukul \u2264 04.30, dan merapikan tempat tidur tanpa diingatkan." },
-      { value: 3, label: "Bangun pukul 04.31\u201305.00, dan merapikan tempat tidur tanpa diingatkan. " },
-      { value: 2, label: "Bangun pukul 05.01\u201305.30, dan merapikan tempat tidur tanpa diingatkan. " },
-      { value: 1, label: "Bangun pukul 05.31\u201306.00, dan merapikan tempat tidur setelah diingatkan. " },
-      { value: 0, label: "Bangun setelah pukul 06.00, dan tidak merapikan tempat tidur." },
+      { value: 4, label: "Bangun kurang dari pukul 04.30." },
+      { value: 3, label: "Bangun pukul 04.31–05.00." },
+      { value: 2, label: "Bangun pukul 05.01–05.30." },
+      { value: 1, label: "Bangun pukul 05.31–06.00." },
+      { value: 0, label: "Bangun lebih dari pukul 06.00." },
     ],
   },
   {
@@ -49,10 +51,10 @@ const KAIH_ITEMS = [
     icon: <FaRunning />,
     ui: { bg: "bg-info/10", border: "border-info/30", text: "text-info" },
     options: [
-      { value: 4, label: "Berolahraga ≥ 60 menit setiap hari seperti (senam pagi, jalan kaki, berlari, bersepeda, bermain bola)." },
-      { value: 3, label: "Berolahraga 30–59 menit setiap hari seperti (senam pagi, jalan kaki, berlari, bersepeda, bermain bola)." },
-      { value: 2, label: "Berolahraga 15–29 menit setiap hari seperti (senam pagi, jalan kaki, berlari, bersepeda, bermain bola)." },
-      { value: 1, label: "Berolahraga < 15 menit setiap hari seperti (senam pagi, jalan kaki, berlari, bersepeda, bermain bola)." },
+      { value: 4, label: "Berolahraga lebih dari 60 menit setiap hari (senam pagi, jalan kaki, berlari, bersepeda, atau bermain bola)." },
+      { value: 3, label: "Berolahraga 30–59 menit setiap hari (senam pagi, jalan kaki, berlari, bersepeda, atau bermain bola)." },
+      { value: 2, label: "Berolahraga 15–29 menit setiap hari (senam pagi, jalan kaki, berlari, bersepeda, atau bermain bola)." },
+      { value: 1, label: "Berolahraga < 15 menit setiap hari (senam pagi, jalan kaki, berlari, bersepeda, atau bermain bola)." },
       { value: 0, label: "Tidak melakukan olahraga maupun aktivitas fisik." },
     ],
   },
@@ -62,11 +64,11 @@ const KAIH_ITEMS = [
     icon: <FaAppleAlt />,
     ui: { bg: "bg-secondary/10", border: "border-secondary/30", text: "text-secondary" },
     options: [
-      { value: 4, label: "Makan nasi, protein/lauk pauk, sayur, buah, susu dan air putih yang cukup." },
-      { value: 3, label: "Makan nasi, lauk pauk/protein, sayur, buah, dan minum air putih yang cukup, tetapi tidak minum susu." },
-      { value: 2, label: "Makan nasi, lauk pauk/protein, sayur, dan minum air putih yang cukup, tetapi belum makan buah." },
-      { value: 1, label: "Makan nasi, lauk pauk/protein, tetapi belum makan sayur dan buah." },
-      { value: 0, label: "Lebih sering makan jajanan, makanan instan, dan tidak makan sayur maupun buah." },
+      { value: 4, label: "Makan nasi, lauk, sayur, buah, minum susu, dan air putih." },
+      { value: 3, label: "Makan nasi, lauk, sayur, buah, dan minum air putih (tidak minum susu)." },
+      { value: 2, label: "Makan nasi, lauk, sayur, dan minum air putih (tidak makan buah)." },
+      { value: 1, label: "Makan nasi dan lauk, dan minum air putih (tidak makan sayur dan buah)." },
+      { value: 0, label: "Makan nasi, tetapi lauknya makanan instan (mie, gorengan)." },
     ],
   },
   {
@@ -75,11 +77,11 @@ const KAIH_ITEMS = [
     icon: <FaBook />,
     ui: { bg: "bg-primary/10", border: "border-primary/30", text: "text-primary" },
     options: [
-      { value: 4, label: "Belajar ≥ 60 menit dengan membaca buku pelajaran atau buku cerita, mengerjakan tugas sekolah, dan berlatih soal di buku pelajaran secara mandiri." },
-      { value: 3, label: "Belajar 30–59 menit dengan membaca buku pelajaran atau cerita, dan mengerjakan tugas sekolah." },
-      { value: 2, label: "Belajar 15 –29 menit dan hanya membaca buku pelajaran atau mengerjakan tugas sekolah saja." },
-      { value: 1, label: "Belajar < 15 menit setelah diingatkan orang tua atau guru." },
-      { value: 0, label: "Tidak melakukan kegiatan belajar di rumah. " },
+      { value: 4, label: "Belajar lebih dari 60 menit setiap hari (membaca, mengerjakan tugas, atau latihan soal)." },
+      { value: 3, label: "Belajar 30–59 menit setiap hari (membaca, mengerjakan tugas, atau latihan soal)." },
+      { value: 2, label: "Belajar 15–29 menit setiap hari (membaca, mengerjakan tugas, atau latihan soal)." },
+      { value: 1, label: "Belajar kurang dari 15 menit setiap hari (membaca, mengerjakan tugas, atau latihan soal)." },
+      { value: 0, label: "Tidak belajar di rumah. " },
     ],
   },
   {
@@ -88,11 +90,11 @@ const KAIH_ITEMS = [
     icon: <FaUsers />,
     ui: { bg: "bg-accent/10", border: "border-accent/30", text: "text-accent" },
     options: [
-      { value: 4, label: "Membantu orang tua di rumah (menyapu, mengepel, membereskan rumah), dan melaksanakan kegiatan sosial di lingkungan sekolah seperti piket ( membereskan kelas, menyapu, mengepel)." },
-      { value: 3, label: "Membantu orang tua di rumah (hanya menyapu dan membereskan rumah) dan melakukan kegiatan piket di sekolah (membereskan dan menyapu kelas saja)." },
-      { value: 2, label: "Membantu orang tua di rumah (menyapu saja) dan melakukan kegiatan piket di sekolah (menyapu kelas saja)." },
-      { value: 1, label: "Membantu orang tua di rumah dan piket sekolah setelah diminta berkali-kali oleh orang tua atau guru." },
-      { value: 0, label: "Tidak membantu orang tua di rumah, dan tidak melaksanakan piket di lingkungan sekolah." },
+      { value: 4, label: "Melakukan 4 kegiatan (membantu orang tua, piket di sekolah, bermain dengan teman, dan membantu teman)." },
+      { value: 3, label: "Melakukan 3 kegiatan ( membantu orang tua, piket di sekolah, dan bermain dengan teman)." },
+      { value: 2, label: "Melakukan 2 (membantu orang tua dan piket di sekolah)." },
+      { value: 1, label: "Melakukan 1 kegiatan (hanya membantu orang tua atau piket di sekolah)." },
+      { value: 0, label: "Tidak melakukan kegiatan bermasyarakat walaupun sudah diingatkan." },
     ],
   },
   {
@@ -102,29 +104,29 @@ const KAIH_ITEMS = [
     ui: { bg: "bg-primary/10", border: "border-primary/30", text: "text-primary" },
     fullWidth: true,
     options: [
-      { value: 4, label: "Tidur pukul 20.00- 20.30, sudah menyiapkan perlengkapan sekolah, dan tidak menggunakan gawai sebelum tidur." },
-      { value: 3, label: "Tidur pukul 20.31–21.00, sudah menyiapkan perlengkapan sekolah, tetapi masih menggunakan gawai sebelum tidur." },
-      { value: 2, label: "Tidur pukul 21.01–21.30, perlengkapan sekolah belum disiapkan lengkap, dan masih menggunakan gawai sebelum tidur." },
-      { value: 1, label: "Tidur pukul 21.31–22.00, belum menyiapkan perlengkapan sekolah, dan masih menggunakan gawai sebelum tidur." },
-      { value: 0, label: "Tidur pukul > 22.00 karena masih menggunakan gawai hingga larut malam." },
+      { value: 4, label: "Tidur kurang Tidur sebelum pukul 20.30, sudah menyiapkan perlengkapan sekolah, dan tidak bermain HP." },
+      { value: 3, label: "Tidur pukul 20.31–21.00, sudah menyiapkan perlengkapan sekolah, masih bermain HP sebentar." },
+      { value: 2, label: "Tidur pukul 21.01–21.30, belum menyiapkan perlengkapan sekolah, dan masih bermain HP." },
+      { value: 1, label: "Tidur pukul  21.31–22.00, belum menyiapkan perlengkapan sekolah, dan masih bermain HP cukup lama." },
+      { value: 0, label: "Tidur di atas 22.00 karena masih bermain HP sampai larut malam." },
     ],
   },
 ]
 
 const BERIBADAH_MUSLIM_OPTIONS = [
-  { value: 4, label: "Melaksanakan seluruh shalat wajib (Subuh, Dzuhur, Ashar, Magrib, Isya) dan mengaji di rumah atau TPA." },
-  { value: 3, label: "Melaksanakan 4 dari 5 shalat wajib, dan mengaji di rumah atau TPA." },
-  { value: 2, label: "Melaksanakan 3 dari 5 shalat wajib dan mengaji di rumah atau TPA." },
-  { value: 1, label: "Melaksanakan 1\u20132 dari 5 shalat wajib dan tidak mengaji di rumah atau TPA." },
-  { value: 0, label: "Tidak melaksanakan shalat wajib, dan tidak mengaji." },
+  { value: 4, label: "Melaksanakan seluruh shalat wajib (Subuh, Dzuhur, Ashar, Magrib, Isya)." },
+  { value: 3, label: "Melaksanakan 4 dari 5 shalat wajib." },
+  { value: 2, label: "Melaksanakan 3 dari 5 shalat wajib." },
+  { value: 1, label: "Melaksanakan 1–2 dari 5 shalat wajib." },
+  { value: 0, label: "Tidak melaksanakan shalat wajib." },
 ]
 
 const BERIBADAH_NON_MUSLIM_OPTIONS = [
-  { value: 4, label: "Melaksanakan doa/ibadah harian dan membaca kitab suci secara mandiri tanpa diingatkan." },
-  { value: 3, label: "Melaksanakan doa/ibadah harian dan membaca kita suci setelah diingatkan satu kali." },
-  { value: 2, label: "Melaksanakan doa/ibadah harian tetapi tidak membaca kitab suci." },
-  { value: 1, label: "Melaksanakan doa/ibadah harian setelah diingatkan lebih dari stau kali." },
-  { value: 0, label: "Tidak melaksanakan doa/ibadah harian dan tidak membaca kitab suci." },
+  { value: 4, label: "Berdoa dan membaca kitab suci sendiri tanpa diingatkan." },
+  { value: 3, label: "Berdoa dan membaca kitab suci setelah diingatkan." },
+  { value: 2, label: "Berdoa tetapi tidak membaca kitab suci." },
+  { value: 1, label: "Membaca kitab suci tetapi tidak berdoa." },
+  { value: 0, label: "Tidak berdoa dan tidak membaca kitab suci." },
 ]
 
 const photoKeys = {
@@ -154,6 +156,7 @@ export default function SiswaJurnalPage() {
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [todayData, setTodayData] = useState(null)
   const [selectedDate] = useState(getTodayDateString())
+  const [showGuide, setShowGuide] = useState(true)
 
   const [photos, setPhotos] = useState({
     fotoBangunPagi: null,
@@ -700,7 +703,17 @@ export default function SiswaJurnalPage() {
 
           <div className="px-1 mb-3 flex items-center justify-between animate-in fade-in duration-500">
              <h3 className="text-lg font-black text-base-content/80 tracking-tight">🎯 Aktivitas Harian</h3>
-             <span className="badge badge-neutral font-extrabold rounded-lg shadow-sm py-2.5 px-3 text-[10px] uppercase">KLIK KARTU</span>
+             <div className="flex items-center gap-2">
+                <button
+                   type="button"
+                   onClick={() => setShowGuide(true)}
+                   className="btn btn-circle btn-xs bg-yellow-400 hover:bg-yellow-500 text-yellow-950 border-none shadow-sm flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+                   title="Lihat Panduan Jurnal"
+                >
+                   <FaLightbulb className="text-[10px] animate-pulse" />
+                </button>
+                <span className="badge badge-neutral font-extrabold rounded-lg shadow-sm py-2.5 px-3 text-[10px] uppercase">KLIK KARTU</span>
+             </div>
           </div>
 
           {/* Grid Grid Items for Inputs */}
@@ -755,6 +768,51 @@ export default function SiswaJurnalPage() {
       >
         {modalBody}
       </KaihPointModal>
+
+      {/* Modal Panduan Pengisian */}
+      {showGuide && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-300/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-base-100 max-w-md w-full rounded-[2.5rem] border-2 border-primary/20 shadow-2xl p-6 flex flex-col items-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary to-secondary"></div>
+            
+            <button
+              type="button"
+              onClick={() => setShowGuide(false)}
+              className="absolute top-4 right-4 bg-base-200 hover:bg-base-300 text-base-content/60 hover:text-base-content rounded-full w-8 h-8 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <FaTimes />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl shadow-inner mt-2 mb-4">
+              💡
+            </div>
+
+            <h3 className="text-xl font-black text-base-content tracking-tight mb-2 text-center">
+              Panduan Pengisian Jurnal
+            </h3>
+            
+            <p className="text-xs font-bold text-base-content/50 text-center mb-5 max-w-xs leading-relaxed">
+              Pelajari panduan di bawah ini untuk memudahkanmu mengisi jurnal kebiasaan baik hari ini!
+            </p>
+
+            <div className="w-full rounded-2xl overflow-hidden border border-base-200 shadow-md mb-6 aspect-[4/3] bg-base-200 flex items-center justify-center">
+              <img 
+                src={panduanJurnalImg} 
+                alt="Panduan Jurnal" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowGuide(false)}
+              className="btn btn-primary h-12 px-8 w-full font-black text-xs rounded-2xl shadow-lg shadow-primary/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:scale-95 border-none text-white uppercase tracking-wider"
+            >
+              Saya Mengerti, Mulai Isi! 🚀
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -138,7 +138,7 @@ export default function DashboardPage() {
                         </div>
 
                         <button 
-                            onClick={() => handleCopy('/bias')}
+                            onClick={() => navigate('/bias')}
                             className="w-full btn btn-md bg-accent/10 hover:bg-accent text-accent-content border-none font-bold rounded-xl shadow-sm gap-2"
                         >
                             <FaBalanceScale /> Cek Bias Respon (IDRES)

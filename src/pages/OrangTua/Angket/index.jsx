@@ -1,44 +1,48 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { FaArrowLeft, FaCheckCircle, FaCheckDouble, FaExclamationTriangle, FaSave } from "react-icons/fa";
+import { FaArrowLeft, FaCheckCircle, FaCheckDouble, FaExclamationTriangle, FaSave, FaTimes, FaLightbulb } from "react-icons/fa";
 import CustomButton from "../../../components/atoms/CustomButton";
+import panduanAngketOrangTuaImg from "../../../assets/panduan-angket-orangtua.png";
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion";
 import { angketOrangTuaService } from "../../../services";
 import CustomModal from "../../../components/organism/CustomModal";
 
 const PERNYATAAN_LIST = [
-  // Bagian 1: Pernyataan Perilaku (1-6)
+  // Bagian 1: Pernyataan Perilaku / IM-7K (1-6)
   { id: 1, text: "Saya selalu membangunkan anak saya setiap pagi." },
   { id: 2, text: "Saya selalu mengingatkan anak saya untuk melaksanakan ibadah tepat waktu setiap hari." },
-  { id: 3, text: "Saya selalu menyuruh anak saya berolahraga setiap hari." },
-  { id: 4, text: "Saya selalu memastikan anak saya tidak menunda dalam mengerjakan tugas sekolah." },
-  { id: 5, text: "Saya selalu mengajarkan anak saya untuk membantu orang lain tanpa perlu diminta." },
-  { id: 6, text: "Saya selalu membiasakan anak saya menjaga kebersihan diri dan lingkungan sekitarnya." },
-  // Bagian 2: Pernyataan Persepsi Diri (7-12)
-  { id: 7, text: "Saya merasa anak saya sudah menjadi anak yang sangat disiplin setiap hari." },
-  { id: 8, text: "Saya merasa anak saya tidak pernah melakukan kesalahan dalam proses belajar." },
-  { id: 9, text: "Saya merasa anak saya sudah cukup rajin meskipun jarang belajar saat di rumah." },
-  { id: 10, text: "Saya percaya anak saya selalu bersikap jujur dalam semua situasi." },
-  { id: 11, text: "Saya merasa anak saya sudah sangat peduli terhadap teman-temannya." },
-  { id: 12, text: "Saya merasa kebiasaan anak saya sudah sangat baik dibandingkan teman-temannya." },
-  // Bagian 3: Pernyataan Kepatuhan (13-18)
-  { id: 13, text: "Saya melihat anak saya cenderung selalu setuju dengan semua aturan tanpa berpikir panjang." },
-  { id: 14, text: "Saya melihat anak saya biasanya langsung mengikuti apa yang dikatakan guru tanpa mempertimbangkan pendapat pribadinya." },
-  { id: 15, text: "Saya melihat anak saya sering setuju dengan teman meskipun belum merasa yakin." },
-  { id: 16, text: "Saya melihat anak saya cenderung menjawab 'setuju' tanpa berpikir lama saat mengisi pertanyaan angket." },
-  { id: 17, text: "Saya melihat anak saya cenderung mengikuti jawaban teman saat sedang mengisi angket." },
-  { id: 18, text: "Saya melihat anak saya cenderung memilih jawaban yang hanya terlihat paling baik saja." },
-  // Bagian 4: Pernyataan Spesifik (19-27)
-  { id: 19, text: "Saya melihat anak saya biasanya langsung setuju dengan aturan bangun pagi tanpa banyak berpikir." },
-  { id: 20, text: "Saya melihat anak saya cenderung mengikuti kegiatan ibadah tanpa bertanya atau berpikir lebih lanjut." },
-  { id: 21, text: "Saya melihat anak saya biasanya setuju saja ketika diminta berolahraga tanpa mempertimbangkan kondisi fisiknya." },
-  { id: 22, text: "Saya melihat anak saya sering langsung setuju bahwa belajar itu penting tanpa memikirkan alasannya." },
-  { id: 23, text: "Saya melihat anak saya biasanya mengikuti aturan mengerjakan tugas tanpa berpikir panjang." },
-  { id: 24, text: "Saya melihat anak saya cenderung setuju membantu teman tanpa mempertimbangkan keadaan dirinya sendiri." },
-  { id: 25, text: "Saya melihat anak saya biasanya mengikuti anjuran hidup bersih tanpa berpikir alasan pentingnya." },
-  { id: 26, text: "Saya melihat anak saya sering menjawab setuju karena merasa itu adalah jawaban yang paling baik di mata orang lain." },
-  { id: 27, text: "Saya melihat anak saya cenderung mengikuti jawaban teman saat menjawab pertanyaan tentang kebiasaan baik." },
+  { id: 3, text: "Saya selalu mengajak/mengingatkan anak saya berolahraga (berlari, jalan kaki, senam)." },
+  { id: 4, text: "Saya selalu mengingatkan anak saya belajar di rumah." },
+  { id: 5, text: "Saya selalu membiasakan anak saya membantu di rumah atau membantu temannya." },
+  { id: 6, text: "Saya selalu membiasakan anak saya untuk menjaga kebersihan di lingkungan rumah." },
+
+  // Bagian 2: Pernyataan Persepsi Diri / SDE-7K (7-12)
+  { id: 7, text: "Saya merasa anak saya selalu mengikuti aturan di rumah." },
+  { id: 8, text: "Saya merasa anak saya selalu benar saat belajar di rumah." },
+  { id: 9, text: "Saya merasa anak saya belajar atau membaca buku, mengerjakan tugas, dan berlatih soal setiap hari di rumah." },
+  { id: 10, text: "Saya merasa anak saya selalu berkata jujur kepada orang lain." },
+  { id: 11, text: "Saya merasa anak saya selalu membantu dan peduli kepada temannya." },
+  { id: 12, text: "Saya merasa kebiasaan anak saya di rumah sudah baik." },
+
+  // Bagian 3: Pernyataan Kepatuhan / MIN (13-18)
+  { id: 13, text: "Saya memperhatikan anak saya selalu langsung menuruti semua aturan di rumah tanpa pernah bertanya alasannya." },
+  { id: 14, text: "Saya melihat anak saya selalu mengikuti semua perkataan gurunya meskipun dia punya keinginan sendiri." },
+  { id: 15, text: "Saya melihat anak saya sering ikut-ikutan saja menyetujui ajakan temannya padahal dirinya sendiri masih ragu." },
+  { id: 16, text: "Saya memperhatikan anak saya terbiasa cepat memilih jawaban \"setuju\" saat sedang mengisi kuesioner." },
+  { id: 17, text: "Saya melihat anak saya suka meniru atau menyontek pilihan jawaban temannya ketika mereka mengisi tugas bersama." },
+  { id: 18, text: "Saya memperhatikan anak saya sengaja memilih jawaban paling bagus." },
+
+  // Bagian 4: Pernyataan Spesifik / MIN (19-27)
+  { id: 19, text: "Saya melihat anak saya menerima aturan bangun pagi tanpa pernah mengeluh atau protes sedikit pun." },
+  { id: 20, text: "Saya memperhatikan anak saya ikut beribadah harian karena sekadar ikut-ikutan orang di rumah." },
+  { id: 21, text: "Saya melihat anak saya langsung ikut berolahraga saat diminta, padahal kondisi badannya sedang kelihatan tidak bergairah." },
+  { id: 22, text: "Saya memperhatikan anak saya hanya mengiyakan kalau belajar itu penting tanpa benar-benar paham apa manfaatnya." },
+  { id: 23, text: "Saya melihat anak saya mengerjakan tugas sekolah supaya tidak dimarahi guru, bukan dari kesadaran sendirinya." },
+  { id: 24, text: "Saya memperhatikan anak saya selalu menolong temannya tanpa memikirkan alasannya." },
+  { id: 25, text: "Saya memperhatikan anak saya menjaga kebersihan hanya karena takut ditegur, bukan karena sadar kesehatan." },
+  { id: 26, text: "Saya memperhatikan anak saya cenderung memilih jawaban \"setuju\" karena tahu itu jawaban yang ingin didengar oleh guru atau saya." },
+  { id: 27, text: "Saya melihat anak saya selalu mengikuti jawaban temannya saat mengisi jurnal 7 kebiasaan." },
 ];
 
 export default function AngketMingguanOrangTuaPage() {
@@ -46,6 +50,7 @@ export default function AngketMingguanOrangTuaPage() {
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
   const [currentWeekInfo, setCurrentWeekInfo] = useState({ week: 1, month: "", year: 2026 });
 
   const [modalConfig, setModalConfig] = useState({
@@ -148,10 +153,10 @@ export default function AngketMingguanOrangTuaPage() {
       onConfirm: executeSubmit,
       showCancel: true,
       message: (
-         <div className="text-center py-1">
-             <p className="font-black text-lg leading-snug mb-2">Lanjutkan Menyimpan?</p>
-             <p className="text-sm font-bold text-base-content/60">Hasil pemantauan Anda sangat berharga bagi perkembangan karakter anak tercinta.</p>
-         </div>
+        <div className="text-center py-1">
+          <p className="font-black text-lg leading-snug mb-2">Lanjutkan Menyimpan?</p>
+          <p className="text-sm font-bold text-base-content/60">Hasil pemantauan Anda sangat berharga bagi perkembangan karakter anak tercinta.</p>
+        </div>
       )
     });
   };
@@ -177,25 +182,25 @@ export default function AngketMingguanOrangTuaPage() {
           title: "Berhasil! 🎉",
           type: "success",
           confirmText: "Selesai",
-          onConfirm: () => { 
-             closeModal(); 
-             setAlreadySubmitted(true);
+          onConfirm: () => {
+            closeModal();
+            setAlreadySubmitted(true);
           },
           showCancel: false,
           message: (
             <div className="text-center flex flex-col items-center py-2">
               <div className="w-16 h-16 bg-success/10 text-success rounded-full flex items-center justify-center text-3xl mb-4 shadow-inner animate-bounce">
-                 <FaCheckDouble />
+                <FaCheckDouble />
               </div>
               <p className="font-black text-xl leading-tight text-base-content mb-1">Observasi Disimpan!</p>
               <p className="text-sm font-bold text-base-content/60 leading-relaxed">
-                 Terima kasih Ayah/Bunda telah meluangkan waktu memantau perkembangan ananda secara berkala. 💙
+                Terima kasih Ayah/Bunda telah meluangkan waktu memantau perkembangan ananda secara berkala. 💙
               </p>
             </div>
           )
         });
       } else {
-         throw new Error(result.message);
+        throw new Error(result.message);
       }
     } catch (err) {
       setModalConfig({
@@ -251,46 +256,46 @@ export default function AngketMingguanOrangTuaPage() {
       ) : alreadySubmitted ? (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500 mt-4 px-1">
           <div className="flex flex-col">
-              <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
-                 <span className="w-6 h-0.5 bg-secondary rounded-full" />
-                 Laporan Terkirim
-              </div>
-              <h1 className="text-2xl font-black text-base-content leading-tight">
-                 🔍 Observasi Wali Murid
-              </h1>
+            <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
+              <span className="w-6 h-0.5 bg-secondary rounded-full" />
+              Laporan Terkirim
+            </div>
+            <h1 className="text-2xl font-black text-base-content leading-tight">
+              🔍 Observasi Wali Murid
+            </h1>
           </div>
 
           <div className="bg-base-100 border border-base-300/60 shadow-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden mt-2 hover:shadow-2xl transition-shadow duration-300">
             <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-secondary to-purple-400"></div>
-            
+
             <div className="w-24 h-24 rounded-full bg-secondary/10 text-secondary flex items-center justify-center text-5xl shadow-inner border-4 border-secondary/5 mt-2">
-                👨‍👩‍👧
+              👨‍👩‍👧
             </div>
-            
+
             <div className="mt-6 space-y-2">
-                <h2 className="text-2xl font-black text-base-content tracking-tight leading-tight">Terima Kasih Ayah / Bunda!</h2>
-                <p className="text-sm font-bold text-base-content/50 max-w-xs mx-auto leading-relaxed">
-                    Anda sudah berhasil mengisi jurnal observasi ananda untuk periode <span className="text-base-content/80 font-black">Minggu Ke-{currentWeekInfo.week} {currentWeekInfo.month} {currentWeekInfo.year}</span>.
-                </p>
+              <h2 className="text-2xl font-black text-base-content tracking-tight leading-tight">Terima Kasih Ayah / Bunda!</h2>
+              <p className="text-sm font-bold text-base-content/50 max-w-xs mx-auto leading-relaxed">
+                Anda sudah berhasil mengisi jurnal observasi ananda untuk periode <span className="text-base-content/80 font-black">Minggu Ke-{currentWeekInfo.week} {currentWeekInfo.month} {currentWeekInfo.year}</span>.
+              </p>
             </div>
 
             <div className="bg-secondary/5 border-2 border-secondary/10 rounded-3xl p-6 w-full mt-8 flex items-center justify-between gap-4 shadow-inner">
-                <div className="text-left">
-                    <span className="text-[10px] font-black text-base-content/40 uppercase tracking-widest leading-none block mb-1">Status Input</span>
-                    <div className="text-2xl font-black text-secondary leading-none flex items-baseline gap-1">
-                        Sudah Masuk
-                    </div>
+              <div className="text-left">
+                <span className="text-[10px] font-black text-base-content/40 uppercase tracking-widest leading-none block mb-1">Status Input</span>
+                <div className="text-2xl font-black text-secondary leading-none flex items-baseline gap-1">
+                  Sudah Masuk
                 </div>
-                <span className="badge badge-secondary font-black px-3 py-5 text-[10px] rounded-xl border-none tracking-wide shadow-sm shadow-secondary/20">1x SEMINGGU</span>
+              </div>
+              <span className="badge badge-secondary font-black px-3 py-5 text-[10px] rounded-xl border-none tracking-wide shadow-sm shadow-secondary/20">1x SEMINGGU</span>
             </div>
 
             <p className="text-xs font-bold text-base-content/40 mt-6">
-               Dukungan & pemantauan Ayah/Bunda sangat berharga bagi perkembangan karakter terbaik ananda. ✨
+              Dukungan & pemantauan Ayah/Bunda sangat berharga bagi perkembangan karakter terbaik ananda. ✨
             </p>
 
             <div className="mt-6 w-full">
-              <Link 
-                to="/orang-tua/teori" 
+              <Link
+                to="/orang-tua/teori"
                 className="btn btn-secondary h-14 px-8 w-full font-black text-xs rounded-2xl shadow-xl shadow-secondary/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:scale-95 border-none text-white uppercase tracking-wider"
               >
                 BACA MATERI PENDUKUNG
@@ -302,41 +307,51 @@ export default function AngketMingguanOrangTuaPage() {
         <>
           {/* Page Header */}
           <div className="flex flex-col">
-              <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase mb-2 tracking-widest">
-                 <span className="w-6 h-0.5 bg-secondary rounded-full" />
-                 Pemantauan Mingguan
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2 text-secondary font-black text-sm uppercase tracking-widest">
+                <span className="w-6 h-0.5 bg-secondary rounded-full" />
+                Pemantauan Mingguan
               </div>
-              <h1 className="text-2xl font-black text-base-content leading-tight">
-                 Jurnal Observasi Wali Murid 🔍
-              </h1>
-              <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">Mohon isi kondisi riil yang Ayah/Bunda amati pada ananda.</p>
+              <button
+                type="button"
+                onClick={() => setShowGuide(true)}
+                className="btn btn-circle btn-xs bg-yellow-400 hover:bg-yellow-500 text-yellow-950 border-none shadow-sm flex items-center justify-center hover:scale-110 active:scale-95 transition-transform"
+                title="Lihat Panduan Observasi"
+              >
+                <FaLightbulb className="text-[10px] animate-pulse" />
+              </button>
+            </div>
+            <h1 className="text-2xl font-black text-base-content leading-tight">
+              Jurnal Observasi Wali Murid 🔍
+            </h1>
+            <p className="text-xs font-bold text-base-content/50 leading-relaxed mt-1">Mohon isi kondisi riil yang Ayah/Bunda amati pada ananda.</p>
           </div>
 
           {/* Persistent Sticky Header Tracker */}
           <div className="sticky top-2 z-[30] transition-all duration-300">
             <div className="card bg-white/90 backdrop-blur-md shadow-glow shadow-secondary/20 border border-secondary/20 rounded-2xl p-3">
               <div className="flex justify-between items-center mb-2">
-                 <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm transition-colors duration-500 ${progress === 100 ? 'bg-success' : 'bg-secondary'}`}>
-                        {progress === 100 ? <FaCheckCircle /> : <span className="text-xs font-black">{Object.keys(responses).length}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                       <span className="text-[10px] font-black text-base-content/40 uppercase leading-none">Progress</span>
-                       <span className="text-sm font-black text-base-content leading-tight">Input Selesai</span>
-                    </div>
-                 </div>
-                 <div className="text-right font-black text-2xl text-secondary leading-none font-mono tracking-tighter flex items-baseline">
-                     {progress}<span className="text-xs opacity-50">%</span>
-                 </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white shadow-sm transition-colors duration-500 ${progress === 100 ? 'bg-success' : 'bg-secondary'}`}>
+                    {progress === 100 ? <FaCheckCircle /> : <span className="text-xs font-black">{Object.keys(responses).length}</span>}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-base-content/40 uppercase leading-none">Progress</span>
+                    <span className="text-sm font-black text-base-content leading-tight">Input Selesai</span>
+                  </div>
+                </div>
+                <div className="text-right font-black text-2xl text-secondary leading-none font-mono tracking-tighter flex items-baseline">
+                  {progress}<span className="text-xs opacity-50">%</span>
+                </div>
               </div>
-              
+
               <div className="relative w-full bg-base-300 rounded-full h-3 overflow-hidden p-[1px]">
-                 <motion.div 
-                    className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/80 shadow-sm shadow-secondary/30"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
-                    transition={{ type: "spring", stiffness: 40 }}
-                 />
+                <motion.div
+                  className="h-full rounded-full bg-gradient-to-r from-secondary to-secondary/80 shadow-sm shadow-secondary/30"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progress}%` }}
+                  transition={{ type: "spring", stiffness: 40 }}
+                />
               </div>
             </div>
           </div>
@@ -345,18 +360,18 @@ export default function AngketMingguanOrangTuaPage() {
           <div className="flex flex-col gap-4">
             {PERNYATAAN_LIST.map((item, index) => {
               const isAnswered = !!responses[item.id];
-              const currentSection = (index === 0 && "📋 Perilaku Keseharian") || 
-                                     (index === 6 && "📊 Persepsi Kondisi Diri") ||
-                                     (index === 12 && "💡 Pola Pikir Anak") ||
-                                     (index === 18 && "🔗 Kepatuhan & Respons");
+              const currentSection = (index === 0 && "📋 Perilaku Keseharian") ||
+                (index === 6 && "📊 Persepsi Kondisi Diri") ||
+                (index === 12 && "💡 Pola Pikir Anak") ||
+                (index === 18 && "🔗 Kepatuhan & Respons");
 
               return (
                 <React.Fragment key={item.id}>
                   {currentSection && (
-                     <div className="mt-4 mb-1 px-1 flex items-center gap-2">
-                        <h3 className="text-sm font-black tracking-wide text-base-content/70 uppercase">{currentSection}</h3>
-                        <div className="flex-1 h-[1px] bg-base-300" />
-                     </div>
+                    <div className="mt-4 mb-1 px-1 flex items-center gap-2">
+                      <h3 className="text-sm font-black tracking-wide text-base-content/70 uppercase">{currentSection}</h3>
+                      <div className="flex-1 h-[1px] bg-base-300" />
+                    </div>
                   )}
 
                   <motion.div
@@ -368,56 +383,56 @@ export default function AngketMingguanOrangTuaPage() {
                     `}
                   >
                     <div className="p-5 flex flex-col gap-4">
-                       <div className="flex gap-3">
-                          <div className={`w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-black transition-colors shadow-sm
+                      <div className="flex gap-3">
+                        <div className={`w-7 h-7 rounded-xl flex-shrink-0 flex items-center justify-center text-xs font-black transition-colors shadow-sm
                             ${isAnswered ? 'bg-secondary text-white' : 'bg-base-200 text-base-content/40'}
                           `}>
-                            {item.id}
-                          </div>
-                          <p className="text-sm font-bold leading-snug text-base-content/80">
-                            {item.text}
-                          </p>
-                       </div>
+                          {item.id}
+                        </div>
+                        <p className="text-sm font-bold leading-snug text-base-content/80">
+                          {item.text}
+                        </p>
+                      </div>
 
-                       <div className="pt-2 border-t border-base-200 border-dashed">
-                          <div className="grid grid-cols-5 gap-2 relative">
-                             {[1, 2, 3, 4, 5].map(val => {
-                                const config = getVisualConfig(val);
-                                return (
-                                   <label key={val} className="flex flex-col items-center group cursor-pointer">
-                                      <input 
-                                         type="radio" 
-                                         name={`ans-${item.id}`}
-                                         checked={responses[item.id] === val}
-                                         onChange={() => handleRadioChange(item.id, val)}
-                                         className="peer sr-only"
-                                      />
-                                      <div className={`w-full aspect-square flex flex-col items-center justify-center rounded-2xl border-2 border-base-300 bg-base-100 text-base-content/40 font-black transition-all duration-300 active:scale-90 hover:border-secondary/40 hover:bg-base-200/50 ${config.class}`}>
-                                          <span className="text-xl leading-none group-hover:scale-110 transition-transform">{config.emoji}</span>
-                                          <span className="text-[9px] mt-0.5">{val}</span>
-                                      </div>
-                                   </label>
-                                )
-                             })}
-                          </div>
+                      <div className="pt-2 border-t border-base-200 border-dashed">
+                        <div className="grid grid-cols-5 gap-2 relative">
+                          {[1, 2, 3, 4, 5].map(val => {
+                            const config = getVisualConfig(val);
+                            return (
+                              <label key={val} className="flex flex-col items-center group cursor-pointer">
+                                <input
+                                  type="radio"
+                                  name={`ans-${item.id}`}
+                                  checked={responses[item.id] === val}
+                                  onChange={() => handleRadioChange(item.id, val)}
+                                  className="peer sr-only"
+                                />
+                                <div className={`w-full aspect-square flex flex-col items-center justify-center rounded-2xl border-2 border-base-300 bg-base-100 text-base-content/40 font-black transition-all duration-300 active:scale-90 hover:border-secondary/40 hover:bg-base-200/50 ${config.class}`}>
+                                  <span className="text-xl leading-none group-hover:scale-110 transition-transform">{config.emoji}</span>
+                                  <span className="text-[9px] mt-0.5">{val}</span>
+                                </div>
+                              </label>
+                            )
+                          })}
+                        </div>
 
-                          <div className="h-5 mt-2 relative flex items-center justify-center">
-                            <AnimatePresence mode="wait">
-                               {isAnswered ? (
-                                  <motion.div 
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.9 }}
-                                    className="text-[10px] font-black text-secondary uppercase tracking-widest px-3 py-1 bg-secondary/10 rounded-full flex items-center gap-1"
-                                  >
-                                     {getVisualConfig(responses[item.id]).label}
-                                  </motion.div>
-                               ) : (
-                                  <span className="text-[9px] font-black text-base-content/30 uppercase tracking-widest">Belum Dipilih</span>
-                               )}
-                            </AnimatePresence>
-                          </div>
-                       </div>
+                        <div className="h-5 mt-2 relative flex items-center justify-center">
+                          <AnimatePresence mode="wait">
+                            {isAnswered ? (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                className="text-[10px] font-black text-secondary uppercase tracking-widest px-3 py-1 bg-secondary/10 rounded-full flex items-center gap-1"
+                              >
+                                {getVisualConfig(responses[item.id]).label}
+                              </motion.div>
+                            ) : (
+                              <span className="text-[9px] font-black text-base-content/30 uppercase tracking-widest">Belum Dipilih</span>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 </React.Fragment>
@@ -427,31 +442,76 @@ export default function AngketMingguanOrangTuaPage() {
 
           {/* Fixed Persistent Bottom Block */}
           <div className="fixed bottom-[76px] left-1/2 -translate-x-1/2 w-full max-w-md px-4 z-30 pointer-events-none">
-             <div className="pointer-events-auto bg-base-100 border border-base-300 p-3 rounded-2xl shadow-glow shadow-secondary/20 flex flex-col gap-2 animate-in slide-in-from-bottom-5 duration-300">
-                {progress < 100 && (
-                   <div className="text-center text-[10px] font-black text-error tracking-wide animate-pulse flex items-center justify-center gap-1">
-                       ✍️ Tersisa {PERNYATAAN_LIST.length - Object.keys(responses).length} poin lagi
-                   </div>
+            <div className="pointer-events-auto bg-base-100 border border-base-300 p-3 rounded-2xl shadow-glow shadow-secondary/20 flex flex-col gap-2 animate-in slide-in-from-bottom-5 duration-300">
+              {progress < 100 && (
+                <div className="text-center text-[10px] font-black text-error tracking-wide animate-pulse flex items-center justify-center gap-1">
+                  ✍️ Tersisa {PERNYATAAN_LIST.length - Object.keys(responses).length} poin lagi
+                </div>
+              )}
+
+              <CustomButton
+                type="secondary"
+                onClick={handleSaveClick}
+                disabled={progress < 100 || loading}
+                className={`w-full py-4 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 shadow-secondary/20 transition-all active:scale-95 ${progress < 100 ? 'grayscale contrast-50' : ''}`}
+              >
+                {loading ? (
+                  <span className="loading loading-spinner loading-sm" />
+                ) : (
+                  <>
+                    {progress === 100 ? <FaCheckCircle /> : <FaSave className="opacity-50" />}
+                    {progress === 100 ? "SIMPAN OBSERVASI SEKARANG" : "LENGKAPI DULU"}
+                  </>
                 )}
-                
-                <CustomButton
-                   type="secondary"
-                   onClick={handleSaveClick}
-                   disabled={progress < 100 || loading}
-                   className={`w-full py-4 font-black rounded-xl shadow-lg flex items-center justify-center gap-2 shadow-secondary/20 transition-all active:scale-95 ${progress < 100 ? 'grayscale contrast-50' : ''}`}
-                >
-                   {loading ? (
-                      <span className="loading loading-spinner loading-sm" />
-                   ) : (
-                      <>
-                         {progress === 100 ? <FaCheckCircle /> : <FaSave className="opacity-50" />}
-                         {progress === 100 ? "SIMPAN OBSERVASI SEKARANG" : "LENGKAPI DULU"}
-                      </>
-                   )}
-                </CustomButton>
-             </div>
+              </CustomButton>
+            </div>
           </div>
         </>
+      )}
+
+      {/* Modal Panduan Pengisian Orang Tua */}
+      {showGuide && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-base-300/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <div className="bg-base-100 max-w-md w-full rounded-[2.5rem] border-2 border-secondary/20 shadow-2xl p-6 flex flex-col items-center relative overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-secondary to-purple-400"></div>
+            
+            <button
+              type="button"
+              onClick={() => setShowGuide(false)}
+              className="absolute top-4 right-4 bg-base-200 hover:bg-base-300 text-base-content/60 hover:text-base-content rounded-full w-8 h-8 flex items-center justify-center transition-colors cursor-pointer"
+            >
+              <FaTimes />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-secondary/10 text-secondary flex items-center justify-center text-2xl shadow-inner mt-2 mb-4">
+              💡
+            </div>
+
+            <h3 className="text-xl font-black text-base-content tracking-tight mb-2 text-center">
+              Panduan Observasi Wali Murid
+            </h3>
+            
+            <p className="text-xs font-bold text-base-content/50 text-center mb-5 max-w-xs leading-relaxed">
+              Pelajari panduan di bawah ini untuk memudahkan Ayah/Bunda memantau dan mengisi jurnal kebiasaan ananda!
+            </p>
+
+            <div className="w-full rounded-2xl overflow-hidden border border-base-200 shadow-md mb-6 aspect-[4/3] bg-base-200 flex items-center justify-center">
+              <img 
+                src={panduanAngketOrangTuaImg} 
+                alt="Panduan Observasi Orang Tua" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowGuide(false)}
+              className="btn btn-secondary h-12 px-8 w-full font-black text-xs rounded-2xl shadow-lg shadow-secondary/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:scale-95 border-none text-white uppercase tracking-wider"
+            >
+              Saya Mengerti, Mulai Isi! 🚀
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

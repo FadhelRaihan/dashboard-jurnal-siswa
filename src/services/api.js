@@ -85,8 +85,9 @@ class ApiService {
       const formData = new URLSearchParams();
       formData.append('action', 'import');
       formData.append('entity', entity);
-      // Masukkan array data sebagai string ke dalam parameter 'data'
-      formData.append('data', JSON.stringify(data));
+      // Backend Google Apps Script mengharapkan parameter 'data' dibungkus sebagai 
+      // JSON string dari sebuah objek yang memiliki field 'data' berisi stringified array data siswa.
+      formData.append('data', JSON.stringify({ data: JSON.stringify(data) }));
 
       const response = await fetch(this.baseURL, {
         method: 'POST',
