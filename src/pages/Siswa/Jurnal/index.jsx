@@ -32,7 +32,7 @@ const KAIH_ITEMS = [
     icon: <FaRegClock />,
     ui: { bg: "bg-secondary/10", border: "border-secondary/30", text: "text-secondary" },
     options: [
-      { value: 4, label: "Bangun kurang dari pukul 04.30." },
+      { value: 4, label: "Bangun sebelum pukul 04.30." },
       { value: 3, label: "Bangun pukul 04.31–05.00." },
       { value: 2, label: "Bangun pukul 05.01–05.30." },
       { value: 1, label: "Bangun pukul 05.31–06.00." },
@@ -108,7 +108,7 @@ const KAIH_ITEMS = [
       { value: 3, label: "Tidur pukul 20.31–21.00, sudah menyiapkan perlengkapan sekolah, masih bermain HP sebentar." },
       { value: 2, label: "Tidur pukul 21.01–21.30, belum menyiapkan perlengkapan sekolah, dan masih bermain HP." },
       { value: 1, label: "Tidur pukul  21.31–22.00, belum menyiapkan perlengkapan sekolah, dan masih bermain HP cukup lama." },
-      { value: 0, label: "Tidur di atas 22.00 karena masih bermain HP sampai larut malam." },
+      { value: 0, label: "Tidur di atas pukul 22.00 karena masih bermain HP sampai larut malam." },
     ],
   },
 ]
