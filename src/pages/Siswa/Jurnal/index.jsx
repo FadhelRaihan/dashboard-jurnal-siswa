@@ -104,7 +104,7 @@ const KAIH_ITEMS = [
     ui: { bg: "bg-primary/10", border: "border-primary/30", text: "text-primary" },
     fullWidth: true,
     options: [
-      { value: 4, label: "Tidur kurang Tidur sebelum pukul 20.30, sudah menyiapkan perlengkapan sekolah, dan tidak bermain HP." },
+      { value: 4, label: "Tidur sebelum pukul 20.30, sudah menyiapkan perlengkapan sekolah, dan tidak bermain HP." },
       { value: 3, label: "Tidur pukul 20.31–21.00, sudah menyiapkan perlengkapan sekolah, masih bermain HP sebentar." },
       { value: 2, label: "Tidur pukul 21.01–21.30, belum menyiapkan perlengkapan sekolah, dan masih bermain HP." },
       { value: 1, label: "Tidur pukul  21.31–22.00, belum menyiapkan perlengkapan sekolah, dan masih bermain HP cukup lama." },
