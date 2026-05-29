@@ -147,6 +147,24 @@ const getTodayDateString = () => {
   return `${year}-${month}-${day}`;
 }
 
+const getRawDriveUrl = (url) => {
+  if (typeof url !== "string" || !url) return url;
+  if (url.includes("drive.google.com")) {
+    const idMatch = url.match(/[?&]id=([-\w]{25,})/);
+    if (idMatch) return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w800`;
+    const match = url.match(/\/d\/([-\w]{25,})/);
+    if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
+  }
+  return url;
+};
+
+const cleanPhotoUrl = (url) => {
+  if (typeof url !== "string") return null;
+  const cleaned = url.trim();
+  if (cleaned === "" || cleaned === "-" || cleaned === "undefined" || cleaned === "null") return null;
+  return cleaned;
+};
+
 export default function SiswaJurnalPage() {
   const [activeItemId, setActiveItemId] = useState(null)
   const activeItem = KAIH_ITEMS.find((x) => x.id === activeItemId) ?? null
@@ -234,13 +252,13 @@ export default function SiswaJurnalPage() {
                 tidur_cepat: safeIntOrNull(existing.tidurCepat),
               })
               setPhotos({
-                fotoBangunPagi: existing.fotoBangunPagi || null,
-                fotoOlahraga: existing.fotoOlahraga || null,
-                fotoIbadah: existing.fotoIbadah || null,
-                fotoMakan: existing.fotoMakan || null,
-                fotoBelajar: existing.fotoBelajar || null,
-                fotoSosial: existing.fotoSosial || null,
-                fotoTidur: existing.fotoTidur || null,
+                fotoBangunPagi: cleanPhotoUrl(existing.fotoBangunPagi),
+                fotoOlahraga: cleanPhotoUrl(existing.fotoOlahraga),
+                fotoIbadah: cleanPhotoUrl(existing.fotoIbadah),
+                fotoMakan: cleanPhotoUrl(existing.fotoMakan),
+                fotoBelajar: cleanPhotoUrl(existing.fotoBelajar),
+                fotoSosial: cleanPhotoUrl(existing.fotoSosial),
+                fotoTidur: cleanPhotoUrl(existing.fotoTidur),
               })
             }
           }
@@ -356,9 +374,9 @@ export default function SiswaJurnalPage() {
         <span className="text-xs font-black tracking-wide uppercase text-base-content/70">Bukti Foto (Opsional)</span>
       </div>
       
-      {currentPhoto ? (
+      {currentPhoto && (currentPhoto.startsWith("http") || currentPhoto.startsWith("data:image")) ? (
         <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden border border-base-200 shadow-md animate-in zoom-in duration-200">
-          <img src={currentPhoto} alt="Preview Bukti" className="w-full h-full object-cover" />
+          <img src={getRawDriveUrl(currentPhoto)} alt="Preview Bukti" className="w-full h-full object-cover" />
           <button
             type="button"
             onClick={() => onChange(null, id)}

@@ -200,22 +200,12 @@ export default function RekapKebiasaanPage() {
 
   const getRawDriveUrl = (url) => {
     if (typeof url !== "string" || !url) return url;
-
-    // Convert uc?export=view → thumbnail (format lama yang perlu dimigrasi)
-    if (url.includes("drive.google.com/uc?export=view")) {
+    if (url.includes("drive.google.com")) {
       const idMatch = url.match(/[?&]id=([-\w]{25,})/);
-      if (idMatch)
-        return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w800`;
+      if (idMatch) return `https://drive.google.com/thumbnail?id=${idMatch[1]}&sz=w800`;
+      const match = url.match(/\/d\/([-\w]{25,})/);
+      if (match) return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
     }
-
-    // Sudah thumbnail — langsung pakai
-    if (url.includes("drive.google.com/thumbnail?id=")) return url;
-
-    // Format /file/d/ID
-    const match = url.match(/\/d\/([-\w]{25,})/);
-    if (match)
-      return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w800`;
-
     return url;
   };
 
