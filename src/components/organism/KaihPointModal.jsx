@@ -4,7 +4,7 @@ import { FaCheckCircle, FaTimes } from "react-icons/fa"
 // eslint-disable-next-line no-unused-vars
 import { motion, AnimatePresence } from "framer-motion"
 
-export default function KaihPointModal({ open, title, itemLabel, value, options, onClose, children, onSelect }) {
+export default function KaihPointModal({ open, title, itemLabel, value, options, onClose, children, onSelect, isLoading }) {
   
   // 🚫 BULLETPROOF SCROLL LOCK EFFECT
   useEffect(() => {
@@ -93,8 +93,10 @@ export default function KaihPointModal({ open, title, itemLabel, value, options,
                 type="primary" 
                 className="w-full h-12 font-black tracking-wide shadow-lg active:scale-[0.98] transition-all" 
                 onClick={onClose}
+                loading={isLoading}
+                disabled={isLoading}
               >
-                Simpan Pilihan
+                {isLoading ? "Sedang Menyimpan..." : "Simpan Pilihan"}
               </CustomButton>
             </div>
           </motion.div>

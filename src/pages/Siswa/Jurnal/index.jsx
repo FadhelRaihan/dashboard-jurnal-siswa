@@ -152,6 +152,7 @@ export default function SiswaJurnalPage() {
   const activeItem = KAIH_ITEMS.find((x) => x.id === activeItemId) ?? null
 
   const [loading, setLoading] = useState(false)
+  const [loadingModal, setLoadingModal] = useState(false)
   const [checkingStatus, setCheckingStatus] = useState(true)
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [todayData, setTodayData] = useState(null)
@@ -181,6 +182,12 @@ export default function SiswaJurnalPage() {
         return strVal === "" || strVal === "undefined" || strVal === "null"
       }
 
+      const safeIntOrNull = (v) => {
+        if (v === undefined || v === null || v === "") return null
+        const num = Number(v)
+        return isNaN(num) ? null : num
+      }
+
       if (isCorrupt(validNisn) || isCorrupt(validNama)) {
         setCheckingStatus(false)
         return
@@ -192,7 +199,7 @@ export default function SiswaJurnalPage() {
         const res = await jurnalKaihService.getHistory({ limit: 1000 })
         
         if (res && res.status && res.data && Array.isArray(res.data.items)) {
-          const existing = res.data.items.find((item) => {
+          const existing = [...res.data.items].reverse().find((item) => {
             const matchNisn = String(item.nisn) === String(validNisn)
             
             if (!item.tanggal) return false
@@ -207,8 +214,35 @@ export default function SiswaJurnalPage() {
           })
 
           if (existing) {
-            setAlreadySubmitted(true)
-            setTodayData(existing)
+            const isLocked = existing.isLocked === "true" || existing.isLocked === true || existing.isLocked == 1
+            if (isLocked) {
+              setAlreadySubmitted(true)
+              setTodayData(existing)
+            } else {
+              setAlreadySubmitted(false)
+              setTodayData(existing)
+              setJournal({
+                bangun_pagi: safeIntOrNull(existing.bangunPagi),
+                berolahraga: safeIntOrNull(existing.berolahraga),
+                beribadah: {
+                  mode: existing.ibadahMode || null,
+                  value: safeIntOrNull(existing.ibadahValue)
+                },
+                makan_sehat: safeIntOrNull(existing.makanSehat),
+                gemar_belajar: safeIntOrNull(existing.gemarBelajar),
+                bermasyarakat: safeIntOrNull(existing.bermasyarakat),
+                tidur_cepat: safeIntOrNull(existing.tidurCepat),
+              })
+              setPhotos({
+                fotoBangunPagi: existing.fotoBangunPagi || null,
+                fotoOlahraga: existing.fotoOlahraga || null,
+                fotoIbadah: existing.fotoIbadah || null,
+                fotoMakan: existing.fotoMakan || null,
+                fotoBelajar: existing.fotoBelajar || null,
+                fotoSosial: existing.fotoSosial || null,
+                fotoTidur: existing.fotoTidur || null,
+              })
+            }
           }
         }
       } catch (err) {
@@ -338,12 +372,11 @@ export default function SiswaJurnalPage() {
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={(e) => onChange(e, id)}
             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
           />
           <div className="flex flex-col items-center gap-0.5 text-base-content/40">
-             <span className="text-xs font-extrabold tracking-wider group-hover:text-primary transition-colors">Klik untuk Mengambil Foto</span>
+             <span className="text-xs font-extrabold tracking-wider group-hover:text-primary transition-colors">Ambil Foto atau Pilih dari Galeri</span>
           </div>
         </div>
       )}
@@ -420,6 +453,115 @@ export default function SiswaJurnalPage() {
     setJournal((prev) => ({ ...prev, [activeItemId]: val }))
   }
 
+  const handleSaveIndicator = async () => {
+    if (!activeItemId) return
+
+    const val = activeItemId === "beribadah" ? journal.beribadah.value : journal[activeItemId]
+    
+    if (val === null || val === undefined) {
+      setActiveItemId(null)
+      return
+    }
+
+    const currentKey = photoKeys[activeItemId]
+    const photo = photos[currentKey]
+
+    const validNisn = userProfile.nisn || userProfile.NISN
+    const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
+
+    const isCorrupt = (val) => {
+      if (!val) return true
+      const strVal = String(val).toLowerCase().trim()
+      return strVal === "" || strVal === "undefined" || strVal === "null"
+    }
+
+    if (isCorrupt(validNisn) || isCorrupt(validNama)) {
+      setModalConfig({
+        isOpen: true,
+        title: "Identitas Tidak Ditemukan! ⚠️",
+        type: "error",
+        onConfirm: () => {
+          setModalConfig((p) => ({ ...p, isOpen: false }))
+          localStorage.clear()
+          sessionStorage.clear()
+          window.location.href = "/siswa/login"
+        },
+        message: (
+          <div className="text-center flex flex-col items-center py-4">
+            <p className="font-black text-base-content leading-tight mb-1.5">Sesi Akun Tidak Valid</p>
+            <p className="text-xs font-bold text-base-content/60 leading-relaxed max-w-xs mx-auto">
+              Maaf, NISN atau Nama kamu terdeteksi kosong. Klik OK untuk login kembali.
+            </p>
+          </div>
+        ),
+      })
+      return
+    }
+
+    setLoadingModal(true)
+
+    // Gabungkan state saat ini dengan opsi yang baru dipilih untuk menghitung skor terbaru
+    const updatedJournal = {
+      ...journal,
+      [activeItemId]: activeItemId === "beribadah" ? journal.beribadah : val
+    }
+    if (activeItemId === "beribadah") {
+      updatedJournal.beribadah = {
+        ...journal.beribadah,
+        value: val
+      }
+    }
+
+    const tempPoints = {
+      bangun_pagi: updatedJournal.bangun_pagi || 0,
+      beribadah: updatedJournal.beribadah.value || 0,
+      berolahraga: updatedJournal.berolahraga || 0,
+      makan_sehat: updatedJournal.makan_sehat || 0,
+      gemar_belajar: updatedJournal.gemar_belajar || 0,
+      bermasyarakat: updatedJournal.bermasyarakat || 0,
+      tidur_cepat: updatedJournal.tidur_cepat || 0,
+    }
+    const computedTotal = Object.values(tempPoints).reduce((a, b) => a + b, 0)
+
+    const payload = {
+      tanggal: selectedDate,
+      nisn: validNisn,
+      namaSiswa: validNama,
+      bangunPagi: updatedJournal.bangun_pagi,
+      berolahraga: updatedJournal.berolahraga,
+      ibadahMode: updatedJournal.beribadah.mode,
+      ibadahValue: updatedJournal.beribadah.value,
+      makanSehat: updatedJournal.makan_sehat,
+      gemarBelajar: updatedJournal.gemar_belajar,
+      bermasyarakat: updatedJournal.bermasyarakat,
+      tidurCepat: updatedJournal.tidur_cepat,
+      totalPoin: computedTotal,
+      fotoBangunPagi: activeItemId === "bangun_pagi" ? photo : photos.fotoBangunPagi,
+      fotoOlahraga: activeItemId === "berolahraga" ? photo : photos.fotoOlahraga,
+      fotoIbadah: activeItemId === "beribadah" ? photo : photos.fotoIbadah,
+      fotoMakan: activeItemId === "makan_sehat" ? photo : photos.fotoMakan,
+      fotoBelajar: activeItemId === "gemar_belajar" ? photo : photos.fotoBelajar,
+      fotoSosial: activeItemId === "bermasyarakat" ? photo : photos.fotoSosial,
+      fotoTidur: activeItemId === "tidur_cepat" ? photo : photos.fotoTidur,
+      isLocked: false // Simpan sebagai draf (belum dikunci)
+    }
+
+    try {
+      const result = await jurnalKaihService.submit(payload)
+      if (result.success) {
+        setTodayData(payload)
+        setActiveItemId(null)
+      } else {
+        throw new Error(result.message)
+      }
+    } catch (err) {
+      console.error("Gagal mencicil indikator jurnal:", err)
+      alert("Gagal menyimpan ke database, silakan coba lagi: " + err.message)
+    } finally {
+      setLoadingModal(false)
+    }
+  }
+
   const simpleModalValue =
     activeItemId && activeItemId !== "beribadah" ? journal[activeItemId] : null
 
@@ -476,48 +618,7 @@ export default function SiswaJurnalPage() {
     return found ? found.label.split(",")[0] : null
   }
 
-  const handleSubmit = async () => {
-    // 🛡️ MIDDLEWARE GUARD: CEK IDENTITAS VALID SEBELUM UPLOAD
-    const validNisn = userProfile.nisn || userProfile.NISN
-    const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
-
-    const isCorrupt = (val) => {
-      if (!val) return true
-      const strVal = String(val).toLowerCase().trim()
-      return strVal === "" || strVal === "undefined" || strVal === "null"
-    }
-
-    if (isCorrupt(validNisn) || isCorrupt(validNama)) {
-      setModalConfig({
-        isOpen: true,
-        title: "Identitas Tidak Ditemukan! ⚠️",
-        type: "error",
-        onConfirm: () => {
-          setModalConfig((p) => ({ ...p, isOpen: false }))
-          // Paksa logout bersih agar siswa melakukan sinkronisasi ulang identitas saat login
-          localStorage.clear()
-          sessionStorage.clear()
-          window.location.href = "/siswa/login"
-        },
-        message: (
-          <div className="text-center flex flex-col items-center py-4">
-            <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center text-3xl mb-3">
-              <FaExclamationTriangle />
-            </div>
-            <p className="font-black text-base-content leading-tight mb-1.5">Sesi Akun Tidak Valid</p>
-            <p className="text-xs font-bold text-base-content/60 leading-relaxed max-w-xs mx-auto">
-              Maaf, NISN atau Nama kamu terdeteksi kosong atau tidak valid. Klik OK untuk kembali Login ulang secara bersih agar datamu sinkron.
-            </p>
-          </div>
-        ),
-      })
-      return
-    }
-
-    if (total === 0) {
-      alert("Kamu belum mengisi poin apapun nih, ayo pilih dulu kegiatannya!")
-      return
-    }
+  const executeFinalLock = async (validNisn, validNama) => {
     setLoading(true)
 
     const payload = {
@@ -540,6 +641,7 @@ export default function SiswaJurnalPage() {
       fotoBelajar: photos.fotoBelajar,
       fotoSosial: photos.fotoSosial,
       fotoTidur: photos.fotoTidur,
+      isLocked: true // Mengunci jurnal agar permanen
     }
 
     try {
@@ -553,16 +655,16 @@ export default function SiswaJurnalPage() {
           onConfirm: () => {
             setModalConfig((p) => ({ ...p, isOpen: false }))
             setAlreadySubmitted(true)
-            setTodayData({ totalPoin: total })
+            setTodayData(payload)
           },
           message: (
             <div className="text-center flex flex-col items-center py-4">
               <div className="w-20 h-20 rounded-full bg-success/10 text-success flex items-center justify-center text-4xl mb-4 shadow-inner animate-bounce">
                  <FaCheckDouble />
               </div>
-              <p className="font-black text-lg text-base-content leading-tight mb-1">Jurnal Harian Tersimpan!</p>
+              <p className="font-black text-lg text-base-content leading-tight mb-1">Jurnal Hari Ini Terkunci!</p>
               <p className="text-sm font-bold text-base-content/60 leading-relaxed max-w-xs mx-auto">
-                Hebat! Kamu selangkah lebih dekat menjadi Anak Indonesia Hebat. ✨
+                Hebat! Jurnal kamu hari ini telah berhasil disimpan dan dikunci. Sampai jumpa besok! ✨
               </p>
             </div>
           ),
@@ -581,14 +683,89 @@ export default function SiswaJurnalPage() {
             <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center text-3xl mb-3 shadow-inner">
               <FaExclamationTriangle />
             </div>
-            <p className="font-bold text-base-content mb-1">Ups! Ada kendala teknis.</p>
-            <p className="text-xs font-medium opacity-70">{err.message || "Periksa sambungan internetmu ya."}</p>
+            <p className="font-bold text-base-content mb-1">Ups! Ada kendala teknis saat mengunci.</p>
+            <p className="text-xs font-medium opacity-70">{err.message || "Gagal mengunci jurnal."}</p>
           </div>
         ),
       })
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSubmit = async () => {
+    // 🛡️ MIDDLEWARE GUARD: CEK IDENTITAS VALID SEBELUM UPLOAD
+    const validNisn = userProfile.nisn || userProfile.NISN
+    const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
+
+    const isCorrupt = (val) => {
+      if (!val) return true
+      const strVal = String(val).toLowerCase().trim()
+      return strVal === "" || strVal === "undefined" || strVal === "null"
+    }
+
+    if (isCorrupt(validNisn) || isCorrupt(validNama)) {
+      setModalConfig({
+        isOpen: true,
+        title: "Identitas Tidak Ditemukan! ⚠️",
+        type: "error",
+        onConfirm: () => {
+          setModalConfig((p) => ({ ...p, isOpen: false }))
+          localStorage.clear()
+          sessionStorage.clear()
+          window.location.href = "/siswa/login"
+        },
+        message: (
+          <div className="text-center flex flex-col items-center py-4">
+            <div className="w-16 h-16 rounded-full bg-error/10 text-error flex items-center justify-center text-3xl mb-3">
+              <FaExclamationTriangle />
+            </div>
+            <p className="font-black text-base-content leading-tight mb-1.5">Sesi Akun Tidak Valid</p>
+            <p className="text-xs font-bold text-base-content/60 leading-relaxed max-w-xs mx-auto">
+              Maaf, NISN atau Nama kamu terdeteksi kosong atau tidak valid. Klik OK untuk kembali Login ulang secara bersih agar datamu sinkron.
+            </p>
+          </div>
+        ),
+      })
+      return
+    }
+
+    const hasFilledAny = Object.keys(journal).some((key) => {
+      if (key === "beribadah") {
+        return journal.beribadah.value !== null
+      }
+      return journal[key] !== null
+    })
+
+    if (!hasFilledAny) {
+      alert("Kamu belum mengisi indikator apapun nih, ayo pilih dulu kegiatannya!")
+      return
+    }
+
+    // Tampilkan modal konfirmasi penguncian
+    setModalConfig({
+      isOpen: true,
+      title: "Kunci Jurnal Hari Ini? 🔐",
+      type: "primary",
+      onConfirm: () => {
+        setModalConfig((p) => ({ ...p, isOpen: false }))
+        executeFinalLock(validNisn, validNama)
+      },
+      confirmText: "Ya, Kunci!",
+      cancelText: "Batal",
+      showCancel: true,
+      message: (
+        <div className="text-center flex flex-col items-center py-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center text-3xl mb-3">
+            🔐
+          </div>
+          <p className="font-black text-base-content leading-tight mb-1.5">Konfirmasi Penguncian</p>
+          <p className="text-xs font-bold text-base-content/60 leading-relaxed max-w-xs mx-auto">
+            Apakah kamu yakin ingin mengunci jurnal hari ini? Setelah dikunci, data jurnal tidak dapat diubah lagi.
+          </p>
+        </div>
+      ),
+    })
   }
 
   return (
@@ -609,8 +786,9 @@ export default function SiswaJurnalPage() {
         onConfirm={modalConfig.onConfirm}
         title={modalConfig.title}
         type={modalConfig.type}
-        confirmText="Siap, Mengerti!"
-        showCancel={false}
+        confirmText={modalConfig.confirmText || "Siap, Mengerti!"}
+        cancelText={modalConfig.cancelText || "Batal"}
+        hiddenCancel={modalConfig.showCancel !== undefined ? !modalConfig.showCancel : true}
       >
         {modalConfig.message}
       </CustomModal>
@@ -738,20 +916,32 @@ export default function SiswaJurnalPage() {
                  </div>
               </div>
               
-              <CustomButton
-                type="primary"
-                className="h-14 px-8 text-sm font-black rounded-2xl shadow-xl flex-1 shadow-primary/25 group border-none hover:scale-[1.02] active:scale-95 transition-all"
-                onClick={handleSubmit}
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="loading loading-spinner loading-sm"></span>
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <FaSave className="text-base" /> <span>SIMPAN JURNAL</span>
-                  </div>
-                )}
-              </CustomButton>
+              {journal.bangun_pagi !== null &&
+              journal.berolahraga !== null &&
+              journal.beribadah.value !== null &&
+              journal.makan_sehat !== null &&
+              journal.gemar_belajar !== null &&
+              journal.bermasyarakat !== null &&
+              journal.tidur_cepat !== null ? (
+                <CustomButton
+                  type="primary"
+                  className="h-14 px-8 text-sm font-black rounded-2xl shadow-xl flex-1 shadow-primary/25 group border-none hover:scale-[1.02] active:scale-95 transition-all"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="loading loading-spinner loading-sm"></span>
+                  ) : (
+                    <div className="flex items-center justify-center gap-2">
+                      <FaSave className="text-base" /> <span>SIMPAN JURNAL</span>
+                    </div>
+                  )}
+                </CustomButton>
+              ) : (
+                <div className="text-[10px] font-black text-base-content/40 uppercase tracking-wide text-right max-w-[150px] leading-tight pr-2">
+                  Lengkapi 7 KAIH untuk mengunci jurnal
+                </div>
+              )}
             </div>
           </div>
         </>
@@ -763,8 +953,9 @@ export default function SiswaJurnalPage() {
         itemLabel={activeItem?.label ?? ""}
         value={simpleModalValue}
         options={activeItem?.options ?? []}
-        onClose={() => setActiveItemId(null)}
+        onClose={handleSaveIndicator}
         onSelect={handleSimpleSelect}
+        isLoading={loadingModal}
       >
         {modalBody}
       </KaihPointModal>

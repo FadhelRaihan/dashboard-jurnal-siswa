@@ -8,7 +8,7 @@ import {
   FaFilter,
 } from "react-icons/fa";
 import CustomButton from "../../components/atoms/CustomButton";
-import { sekolahService, rekapBulananService } from "../../services";
+import { sekolahService, rekapBulananService, jurnalKaihService, siswaService } from "../../services";
 import { useNotification } from "../../context/NotificationContext";
 import { useOutletContext } from "react-router-dom";
 import CustomModal from "../../components/organism/CustomModal";
@@ -25,10 +25,14 @@ import {
 export default function RekapKebiasaanPage() {
   useOutletContext();
   const { showNotif } = useNotification();
-  const [activeTab, setActiveTab] = useState("mingguan");
+  const [activeTab, setActiveTab] = useState("harian");
+  const [dataHarian, setDataHarian] = useState([]);
   const [dataMingguan, setDataMingguan] = useState([]);
   const [dataCapaian, setDataCapaian] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filterDate, setFilterDate] = useState(
+    new Date().toLocaleDateString("sv-SE")
+  );
   const [optionsSekolah, setOptionsSekolah] = useState([]);
   const [availableClasses, setAvailableClasses] = useState([]);
 
@@ -85,6 +89,42 @@ export default function RekapKebiasaanPage() {
     }
   }, [filter.idSekolah, optionsSekolah]);
 
+  const fetchDailyStatus = async () => {
+    const resSiswa = await siswaService.getAll(1, 1000, "", filter.idSekolah, filter.idKelas);
+    const listSiswa = resSiswa?.status && resSiswa.data ? (resSiswa.data.items || []) : [];
+
+    if (listSiswa.length === 0) {
+      setDataHarian([]);
+      return;
+    }
+
+    const resJurnal = await jurnalKaihService.getHistory({ limit: 1000 });
+    const logs = resJurnal?.status && resJurnal.data ? (resJurnal.data.items || []) : [];
+
+    const mapped = listSiswa.map((siswa) => {
+      const log = [...logs].reverse().find((item) => {
+        const matchNisn = String(item.nisn) === String(siswa.nisn || siswa.NISN);
+        if (!item.tanggal) return false;
+
+        const itemDate = new Date(item.tanggal);
+        const year = itemDate.getFullYear();
+        const month = String(itemDate.getMonth() + 1).padStart(2, '0');
+        const day = String(itemDate.getDate()).padStart(2, '0');
+        const itemDateStr = `${year}-${month}-${day}`;
+
+        return matchNisn && itemDateStr === filterDate;
+      });
+
+      return {
+        nisn: siswa.nisn || siswa.NISN,
+        namaSiswa: siswa.namaLengkap || siswa.namaSiswa,
+        log: log || null
+      };
+    });
+
+    setDataHarian(mapped);
+  };
+
   const handleFetchData = async () => {
     if (!filter.idSekolah || !filter.idKelas) {
       showNotif("info", "Harap pilih institusi sekolah dan kelas");
@@ -92,12 +132,16 @@ export default function RekapKebiasaanPage() {
     }
     setLoading(true);
     try {
-      const [resMingguan, resCapaian] = await Promise.all([
-        rekapBulananService.getRekapMingguan(filter),
-        rekapBulananService.getRekapKetercapaian(filter),
-      ]);
-      if (resMingguan?.status) setDataMingguan(resMingguan.data);
-      if (resCapaian?.status) setDataCapaian(resCapaian.data);
+      if (activeTab === "harian") {
+        await fetchDailyStatus();
+      } else {
+        const [resMingguan, resCapaian] = await Promise.all([
+          rekapBulananService.getRekapMingguan(filter),
+          rekapBulananService.getRekapKetercapaian(filter),
+        ]);
+        if (resMingguan?.status) setDataMingguan(resMingguan.data);
+        if (resCapaian?.status) setDataCapaian(resCapaian.data);
+      }
       showNotif("success", "Rekapitulasi dimuat.");
     } catch {
       showNotif("error", "Terjadi kendala pengambilan rekap.");
@@ -251,15 +295,25 @@ export default function RekapKebiasaanPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-black text-base-content/50 uppercase tracking-widest ml-1">
-                Bulan Laporan
+                {activeTab === "harian" ? "Tanggal Laporan" : "Bulan Laporan"}
               </label>
-              <input
-                type="month"
-                className="input input-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full shadow-sm bg-base-100"
-                disabled={loading}
-                value={selectedMonth}
-                onChange={handleMonthChange}
-              />
+              {activeTab === "harian" ? (
+                <input
+                  type="date"
+                  className="input input-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full shadow-sm bg-base-100"
+                  disabled={loading}
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                />
+              ) : (
+                <input
+                  type="month"
+                  className="input input-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full shadow-sm bg-base-100"
+                  disabled={loading}
+                  value={selectedMonth}
+                  onChange={handleMonthChange}
+                />
+              )}
             </div>
           </div>
 
@@ -296,6 +350,12 @@ export default function RekapKebiasaanPage() {
 
           <div className="bg-base-200/80 p-1.5 rounded-full flex gap-1 w-full sm:w-auto border border-base-300/50 shadow-inner">
             <button
+              className={`flex-1 sm:flex-none px-5 py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === "harian" ? "bg-white text-primary shadow-md border border-base-100" : "text-base-content/50 hover:text-base-content/80"}`}
+              onClick={() => !loading && setActiveTab("harian")}
+            >
+              <FaCalendarCheck className="text-xs" /> Status Harian
+            </button>
+            <button
               className={`flex-1 sm:flex-none px-5 py-2.5 rounded-full text-xs font-black flex items-center justify-center gap-2 transition-all duration-300 ${activeTab === "mingguan" ? "bg-white text-primary shadow-md border border-base-100" : "text-base-content/50 hover:text-base-content/80"}`}
               onClick={() => !loading && setActiveTab("mingguan")}
             >
@@ -323,6 +383,89 @@ export default function RekapKebiasaanPage() {
               Menganalisa Algoritma Data...
             </p>
           </div>
+        ) : activeTab === "harian" ? (
+          dataHarian.length > 0 ? (
+            dataHarian.map((siswa, idx) => {
+              const hasLog = !!siswa.log;
+              const isLocked = hasLog && (siswa.log.isLocked === "true" || siswa.log.isLocked === true || siswa.log.isLocked == 1);
+              
+              let statusBadge = (
+                <span className="badge badge-error text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest">
+                  ❌ BELUM MENGERJAKAN
+                </span>
+              );
+              if (hasLog) {
+                if (isLocked) {
+                  statusBadge = (
+                    <span className="badge badge-success text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest flex items-center gap-1">
+                      🔐 SELESAI
+                    </span>
+                  );
+                } else {
+                  statusBadge = (
+                    <span className="badge badge-warning text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest flex items-center gap-1">
+                      📝 BELUM SELESAI (DRAF)
+                    </span>
+                  );
+                }
+              }
+
+              return (
+                <motion.div
+                  key={siswa.nisn}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.03 }}
+                  className="bg-base-100 rounded-[2rem] border-2 border-base-200 shadow-sm overflow-hidden p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 hover:shadow-md transition-all duration-300 hover:border-primary/30"
+                >
+                  {/* Profile Identity */}
+                  <div className="flex items-center gap-4 flex-1 w-full">
+                    <div className="w-12 h-12 rounded-2xl bg-base-200 text-base-content flex items-center justify-center text-xl font-black border border-base-300">
+                      {siswa.namaSiswa?.charAt(0)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-black uppercase tracking-tight truncate text-base-content">
+                        {siswa.namaSiswa}
+                      </h3>
+                      <span className="text-[10px] font-mono font-bold bg-base-200 text-base-content/60 px-2 py-0.5 rounded-md mt-1 inline-flex items-center gap-1">
+                        <FaRegAddressCard className="text-[9px]" /> {siswa.nisn}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Daily Status and Score */}
+                  <div className="flex items-center gap-4 w-full sm:w-auto shrink-0 justify-between sm:justify-end">
+                    {statusBadge}
+                    
+                    {hasLog && (
+                      <div className="badge bg-base-content text-base-100 font-black text-[9px] px-3 py-3 border-none tracking-wider">
+                        SKOR: {siswa.log.totalPoin} Pts
+                      </div>
+                    )}
+
+                    <CustomButton
+                      type="ghost"
+                      className="btn-xs normal-case bg-white rounded-full shadow-sm border-2 font-black text-primary"
+                      disabled={!hasLog}
+                      onClick={() => handleShowDetail(siswa)}
+                    >
+                      <FaRegImage className="text-xs" /> Lampiran
+                    </CustomButton>
+                  </div>
+                </motion.div>
+              );
+            })
+          ) : (
+            <div className="flex flex-col items-center py-24 bg-base-100 rounded-[3rem] border-2 border-dashed border-base-200 opacity-60">
+              <div className="text-5xl mb-4">🔎</div>
+              <h3 className="text-lg font-black text-base-content">
+                Belum Ada Hasil Pencarian
+              </h3>
+              <p className="text-sm text-base-content/50 font-bold mt-1">
+                Silakan pilih Sekolah dan Kelas pada filter di atas, lalu klik TAMPILKAN.
+              </p>
+            </div>
+          )
         ) : (activeTab === "mingguan" ? dataMingguan : dataCapaian).length >
           0 ? (
           (activeTab === "mingguan" ? dataMingguan : dataCapaian).map(
@@ -352,8 +495,8 @@ export default function RekapKebiasaanPage() {
                 >
                   {/* 🟢 COLLAPSED HEADER BLOCK */}
                   <div
-                    className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 cursor-pointer select-none"
-                    onClick={() => setExpandedId(isOpen ? null : siswa.nisn)}
+                     className="p-4 sm:p-5 flex flex-col sm:flex-row items-center gap-4 cursor-pointer select-none"
+                     onClick={() => setExpandedId(isOpen ? null : siswa.nisn)}
                   >
                     {/* Profile Identity */}
                     <div className="flex items-center gap-4 flex-1 w-full">
@@ -393,11 +536,11 @@ export default function RekapKebiasaanPage() {
                               : parseFloat(siswa.capaian[cat.key].total || 0);
 
                           return (
-                            <div
-                              key={cat.key}
-                              title={cat.label}
-                              className={`w-2.5 h-8 rounded-full ${activeTab === "mingguan" ? (val >= 3.5 ? "bg-success" : val >= 2.5 ? "bg-info" : val >= 1.5 ? "bg-warning" : val > 0 ? "bg-error" : "bg-base-300") : "bg-primary/20"} opacity-80 hover:opacity-100 transition-all hover:scale-y-110`}
-                            />
+                             <div
+                               key={cat.key}
+                               title={cat.label}
+                               className={`w-2.5 h-8 rounded-full ${activeTab === "mingguan" ? (val >= 3.5 ? "bg-success" : val >= 2.5 ? "bg-info" : val >= 1.5 ? "bg-warning" : val > 0 ? "bg-error" : "bg-base-300") : "bg-primary/20"} opacity-80 hover:opacity-100 transition-all hover:scale-y-110`}
+                             />
                           );
                         })}
                       </motion.div>
@@ -455,7 +598,7 @@ export default function RekapKebiasaanPage() {
                           </div>
 
                           {/* Interactive Metric Grid */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                             {categories.map((cat) => {
                               if (activeTab === "mingguan") {
                                 const weeks = [
@@ -497,7 +640,7 @@ export default function RekapKebiasaanPage() {
                                             {w.l}
                                           </span>
                                           <span
-                                            className={`absolute -top-6 bg-base-content text-white text-[9px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`}
+                                             className={`absolute -top-6 bg-base-content text-white text-[9px] font-black px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none`}
                                           >
                                             {w.v || 0}
                                           </span>
@@ -603,8 +746,19 @@ export default function RekapKebiasaanPage() {
                         year: "numeric",
                       })}
                     </div>
-                    <div className="badge bg-base-content text-base-100 font-black text-[9px] px-3 py-3 border-none tracking-widest">
-                      POIN: {jurnal.totalPoin}
+                    <div className="flex items-center gap-2">
+                      {jurnal.isLocked === "true" || jurnal.isLocked === true || jurnal.isLocked == 1 ? (
+                        <span className="badge badge-success text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest">
+                          🔐 SELESAI
+                        </span>
+                      ) : (
+                        <span className="badge badge-warning text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest">
+                          📝 BELUM SELESAI
+                        </span>
+                      )}
+                      <div className="badge bg-base-content text-base-100 font-black text-[9px] px-3 py-3 border-none tracking-widest">
+                        POIN: {jurnal.totalPoin}
+                      </div>
                     </div>
                   </div>
 
