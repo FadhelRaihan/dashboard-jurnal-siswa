@@ -100,7 +100,7 @@ export default function MonitoringBiasPage() {
                     idSekolah: filter.idSekolah,
                     idKelas: filter.idKelas,
                     startMonth: filter.bulan,
-                    endMonth: filter.bulan,
+                    endMonth: filter.bulan === 12 ? 12 : filter.bulan + 1,
                     year: filter.tahun
                 }),
                 rekapBulananService.getRekapMingguan(filter)
@@ -153,18 +153,20 @@ export default function MonitoringBiasPage() {
                     const siswaLogsInWeek = mRow.allLogsSiswa ? mRow.allLogsSiswa.filter(log => {
                         if (!log.waktu_simpan) return false;
                         const d = new Date(log.waktu_simpan);
-                        return d.getFullYear() === filter.tahun &&
-                               (d.getMonth() + 1) === filter.bulan &&
-                               getWeekFromDate(d) === filter.minggu;
+                        const targetD = new Date(d.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        return targetD.getFullYear() === filter.tahun &&
+                               (targetD.getMonth() + 1) === filter.bulan &&
+                               getWeekFromDate(targetD) === filter.minggu;
                     }) : [];
                     const siswaLog = siswaLogsInWeek.length > 0 ? siswaLogsInWeek[siswaLogsInWeek.length - 1] : null;
 
                     const ortuLogsInWeek = mRow.allLogsOT ? mRow.allLogsOT.filter(log => {
                         if (!log.waktu_simpan) return false;
                         const d = new Date(log.waktu_simpan);
-                        return d.getFullYear() === filter.tahun &&
-                               (d.getMonth() + 1) === filter.bulan &&
-                               getWeekFromDate(d) === filter.minggu;
+                        const targetD = new Date(d.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        return targetD.getFullYear() === filter.tahun &&
+                               (targetD.getMonth() + 1) === filter.bulan &&
+                               getWeekFromDate(targetD) === filter.minggu;
                     }) : [];
                     const ortuLog = ortuLogsInWeek.length > 0 ? ortuLogsInWeek[ortuLogsInWeek.length - 1] : null;
 

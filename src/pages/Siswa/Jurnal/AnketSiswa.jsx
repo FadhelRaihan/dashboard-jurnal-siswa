@@ -52,7 +52,7 @@ export default function AngketMingguanSiswaPage() {
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
-  const [isSunday, setIsSunday] = useState(true);
+  const [isMonday, setIsMonday] = useState(true);
   const [currentWeekInfo, setCurrentWeekInfo] = useState({ week: 1, month: "", year: 2026 });
 
   const [modalConfig, setModalConfig] = useState({
@@ -87,8 +87,8 @@ export default function AngketMingguanSiswaPage() {
   useEffect(() => {
     const checkWeeklyStatus = async () => {
       const now = new Date();
-      if (now.getDay() !== 0) {
-        setIsSunday(false);
+      if (now.getDay() !== 1) {
+        setIsMonday(false);
         setCheckingStatus(false);
         return;
       }
@@ -106,9 +106,10 @@ export default function AngketMingguanSiswaPage() {
         setCheckingStatus(false);
         return;
       }
-      const curWeek = getWeekFromDate(now);
-      const curMonth = now.getMonth();
-      const curYear = now.getFullYear();
+      const targetDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const curWeek = getWeekFromDate(targetDate);
+      const curMonth = targetDate.getMonth();
+      const curYear = targetDate.getFullYear();
 
       setCurrentWeekInfo({
         week: curWeek,
@@ -125,9 +126,10 @@ export default function AngketMingguanSiswaPage() {
             if (!item.waktu_simpan) return false;
 
             const itemDate = new Date(item.waktu_simpan);
-            const itemWeek = getWeekFromDate(itemDate);
-            const itemMonth = itemDate.getMonth();
-            const itemYear = itemDate.getFullYear();
+            const targetItemDate = new Date(itemDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+            const itemWeek = getWeekFromDate(targetItemDate);
+            const itemMonth = targetItemDate.getMonth();
+            const itemYear = targetItemDate.getFullYear();
 
             // Blokir jika siswa sudah mengisi di minggu, bulan, dan tahun yang sama
             return matchNisn && itemWeek === curWeek && itemMonth === curMonth && itemYear === curYear;
@@ -303,7 +305,7 @@ export default function AngketMingguanSiswaPage() {
           <span className="loading loading-spinner loading-lg text-primary scale-125"></span>
           <span className="text-xs font-black text-base-content/40 uppercase tracking-widest animate-pulse">Memeriksa Riwayat Angket...</span>
         </div>
-      ) : !isSunday ? (
+      ) : !isMonday ? (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
           <div className="px-1 mb-2">
             <div className="flex items-center gap-2 text-warning font-black text-sm uppercase tracking-widest mb-2">
@@ -325,7 +327,7 @@ export default function AngketMingguanSiswaPage() {
             <div className="mt-6 space-y-2">
               <h2 className="text-2xl font-black text-base-content tracking-tight leading-tight">Belum Waktunya Mengisi</h2>
               <p className="text-sm font-bold text-base-content/50 max-w-sm mx-auto leading-relaxed mt-2">
-                Angket mingguan hanya dapat diisi pada hari <span className="text-warning font-black">Minggu</span> sebagai validasi atas jurnal yang telah dikerjakan selama satu minggu.
+                Angket mingguan hanya dapat diisi pada hari <span className="text-warning font-black">Senin</span> sebagai validasi atas jurnal yang telah dikerjakan pada minggu sebelumnya.
               </p>
             </div>
 

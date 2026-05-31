@@ -81,7 +81,7 @@ export default function AngketPage() {
         idSekolah: filter.idSekolah,
         idKelas: filter.idKelas,
         startMonth: filter.bulan,
-        endMonth: filter.bulan,
+        endMonth: filter.bulan === 12 ? 12 : filter.bulan + 1,
         year: filter.tahun,
       });
       if (result?.status) {
@@ -91,10 +91,11 @@ export default function AngketPage() {
             ? mRow.allLogsSiswa.filter((log) => {
                 if (!log.waktu_simpan) return false;
                 const d = new Date(log.waktu_simpan);
+                const targetD = new Date(d.getTime() - 7 * 24 * 60 * 60 * 1000);
                 return (
-                  d.getFullYear() === filter.tahun &&
-                  d.getMonth() + 1 === filter.bulan &&
-                  getWeekFromDate(d) === filter.minggu
+                  targetD.getFullYear() === filter.tahun &&
+                  targetD.getMonth() + 1 === filter.bulan &&
+                  getWeekFromDate(targetD) === filter.minggu
                 );
               })
             : [];
@@ -107,10 +108,11 @@ export default function AngketPage() {
             ? mRow.allLogsOT.filter((log) => {
                 if (!log.waktu_simpan) return false;
                 const d = new Date(log.waktu_simpan);
+                const targetD = new Date(d.getTime() - 7 * 24 * 60 * 60 * 1000);
                 return (
-                  d.getFullYear() === filter.tahun &&
-                  d.getMonth() + 1 === filter.bulan &&
-                  getWeekFromDate(d) === filter.minggu
+                  targetD.getFullYear() === filter.tahun &&
+                  targetD.getMonth() + 1 === filter.bulan &&
+                  getWeekFromDate(targetD) === filter.minggu
                 );
               })
             : [];
