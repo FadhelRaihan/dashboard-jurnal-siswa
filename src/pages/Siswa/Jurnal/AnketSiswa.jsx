@@ -37,7 +37,7 @@ const PERNYATAAN_LIST = [
   // ACQ Per Indikator
   { id: 21, text: "Saya bangun pagi karena disuruh, bukan karena tahu manfaatnya." },
   { id: 22, text: "Saya melaksanakan ibadah karena diingatkan orang tua atau mengikuti orang lain." },
-  { id: 23, text: "Saya langsung ikut saat diminta berolahraga." },
+  { id: 23, text: "Saya berolahraga karena mengikuti ajakan orang lain tanpa mempertimbangkan manfaatnya." },
   { id: 24, text: "Saya makan makanan sehat karena disuruh orang tua." },
   { id: 25, text: "Saya selalu setuju bahwa belajar itu penting walaupun tidak tahu alasannya." },
   { id: 26, text: "Saya mengerjakan tugas karena disuruh guru." },
@@ -52,6 +52,7 @@ export default function AngketMingguanSiswaPage() {
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [isSunday, setIsSunday] = useState(true);
   const [currentWeekInfo, setCurrentWeekInfo] = useState({ week: 1, month: "", year: 2026 });
 
   const [modalConfig, setModalConfig] = useState({
@@ -85,6 +86,13 @@ export default function AngketMingguanSiswaPage() {
 
   useEffect(() => {
     const checkWeeklyStatus = async () => {
+      const now = new Date();
+      if (now.getDay() !== 0) {
+        setIsSunday(false);
+        setCheckingStatus(false);
+        return;
+      }
+
       const validNisn = userProfile.nisn || userProfile.NISN;
       const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa;
 
@@ -98,8 +106,6 @@ export default function AngketMingguanSiswaPage() {
         setCheckingStatus(false);
         return;
       }
-
-      const now = new Date();
       const curWeek = getWeekFromDate(now);
       const curMonth = now.getMonth();
       const curYear = now.getFullYear();
@@ -296,6 +302,42 @@ export default function AngketMingguanSiswaPage() {
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 animate-in fade-in duration-300 mt-10">
           <span className="loading loading-spinner loading-lg text-primary scale-125"></span>
           <span className="text-xs font-black text-base-content/40 uppercase tracking-widest animate-pulse">Memeriksa Riwayat Angket...</span>
+        </div>
+      ) : !isSunday ? (
+        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
+          <div className="px-1 mb-2">
+            <div className="flex items-center gap-2 text-warning font-black text-sm uppercase tracking-widest mb-2">
+              <span className="w-6 h-0.5 bg-warning rounded-full" />
+              Angket Belum Dibuka
+            </div>
+            <h1 className="text-3xl font-black text-base-content tracking-tight leading-none mb-1 flex items-center gap-2">
+              🧐 Angket Mingguan
+            </h1>
+          </div>
+
+          <div className="bg-base-100 border border-base-300/60 shadow-xl rounded-[2.5rem] p-8 flex flex-col items-center text-center relative overflow-hidden mt-2 hover:shadow-2xl transition-shadow duration-300">
+            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-warning to-amber-400"></div>
+
+            <div className="w-24 h-24 rounded-full bg-warning/10 text-warning flex items-center justify-center text-5xl shadow-inner border-4 border-warning/5 mt-2">
+              🗓️
+            </div>
+
+            <div className="mt-6 space-y-2">
+              <h2 className="text-2xl font-black text-base-content tracking-tight leading-tight">Belum Waktunya Mengisi</h2>
+              <p className="text-sm font-bold text-base-content/50 max-w-sm mx-auto leading-relaxed mt-2">
+                Angket mingguan hanya dapat diisi pada hari <span className="text-warning font-black">Minggu</span> sebagai validasi atas jurnal yang telah dikerjakan selama satu minggu.
+              </p>
+            </div>
+
+            <div className="mt-8 w-full">
+              <Link
+                to="/siswa"
+                className="btn btn-warning h-14 px-8 w-full font-black text-xs rounded-2xl shadow-xl shadow-warning/20 flex items-center justify-center gap-2 hover:scale-[1.02] transition-all active:scale-95 border-none text-yellow-950 uppercase tracking-wider bg-warning"
+              >
+                KEMBALI KE BERANDA
+              </Link>
+            </div>
+          </div>
         </div>
       ) : alreadySubmitted ? (
         <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
