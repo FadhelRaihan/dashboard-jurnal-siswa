@@ -15,6 +15,19 @@ import { useNotification } from "../../context/NotificationContext";
 import { PERNYATAAN_OT, PERNYATAAN_SISWA } from "../../const/pertanyaan";
 import { useOutletContext } from "react-router-dom";
 
+const monthNames = [
+  "", "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+];
+
+const getWeekFromDate = (date) => {
+  const day = date.getDate();
+  if (day <= 7) return 1;
+  if (day <= 14) return 2;
+  if (day <= 21) return 3;
+  return 4;
+};
+
 export default function AngketPage() {
   const { showNotif } = useNotification();
   const { role } = useOutletContext();
@@ -23,18 +36,18 @@ export default function AngketPage() {
   const [loading, setLoading] = useState(false);
   const [optionsSekolah, setOptionsSekolah] = useState([]);
   const [availableClasses, setAvailableClasses] = useState([]);
-  const [dateRange, setDateRange] = useState({
-    start: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`,
-    end: `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`,
-  });
-
+  
   const [filter, setFilter] = useState({
     idSekolah: "",
     idKelas: "",
-    startMonth: new Date().getMonth() + 1,
-    endMonth: new Date().getMonth() + 1,
-    year: new Date().getFullYear(),
+    bulan: new Date().getMonth() + 1,
+    tahun: new Date().getFullYear(),
+    minggu: getWeekFromDate(new Date())
   });
+
+  const [selectedPeriod, setSelectedPeriod] = useState(
+    `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`
+  );
 
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSiswa, setSelectedSiswa] = useState(null);
@@ -64,9 +77,79 @@ export default function AngketPage() {
     }
     setLoading(true);
     try {
-      const result = await monitoringAngketService.getByClass(filter);
+      const result = await monitoringAngketService.getByClass({
+        idSekolah: filter.idSekolah,
+        idKelas: filter.idKelas,
+        startMonth: filter.bulan,
+        endMonth: filter.bulan,
+        year: filter.tahun,
+      });
       if (result?.status) {
-        setDataMonitoring(result.data);
+        const rawData = result.data || [];
+        const parsed = rawData.map((mRow) => {
+          const siswaLogsInWeek = mRow.allLogsSiswa
+            ? mRow.allLogsSiswa.filter((log) => {
+                if (!log.waktu_simpan) return false;
+                const d = new Date(log.waktu_simpan);
+                return (
+                  d.getFullYear() === filter.tahun &&
+                  d.getMonth() + 1 === filter.bulan &&
+                  getWeekFromDate(d) === filter.minggu
+                );
+              })
+            : [];
+          const siswaLog =
+            siswaLogsInWeek.length > 0
+              ? siswaLogsInWeek[siswaLogsInWeek.length - 1]
+              : null;
+
+          const ortuLogsInWeek = mRow.allLogsOT
+            ? mRow.allLogsOT.filter((log) => {
+                if (!log.waktu_simpan) return false;
+                const d = new Date(log.waktu_simpan);
+                return (
+                  d.getFullYear() === filter.tahun &&
+                  d.getMonth() + 1 === filter.bulan &&
+                  getWeekFromDate(d) === filter.minggu
+                );
+              })
+            : [];
+          const ortuLog =
+            ortuLogsInWeek.length > 0
+              ? ortuLogsInWeek[ortuLogsInWeek.length - 1]
+              : null;
+
+          const getSum = (log, start, end) => {
+            let sum = 0;
+            for (let i = start; i <= end; i++) {
+              const val = parseInt(log[`p${i}`]);
+              if (!isNaN(val)) sum += val;
+            }
+            return sum;
+          };
+
+          const skorSiswa = {
+            im: siswaLog ? getSum(siswaLog, 1, 7) : 0,
+            sde: siswaLog ? getSum(siswaLog, 8, 14) : 0,
+            acq: siswaLog ? getSum(siswaLog, 15, 30) : 0,
+          };
+
+          const skorOrTu = {
+            im: ortuLog ? getSum(ortuLog, 1, 7) : 0,
+            sde: ortuLog ? getSum(ortuLog, 8, 14) : 0,
+            acq: ortuLog ? getSum(ortuLog, 15, 30) : 0,
+          };
+
+          return {
+            ...mRow,
+            siswaLogSelected: siswaLog,
+            ortuLogSelected: ortuLog,
+            partisipasi: { siswa: siswaLog ? 1 : 0, orangTua: ortuLog ? 1 : 0 },
+            skorSiswa,
+            skorOrTu,
+          };
+        });
+        setDataMonitoring(parsed);
       }
     } catch {
       showNotif("error", "Terdapat kendala pengambilan data");
@@ -77,77 +160,110 @@ export default function AngketPage() {
 
   const columns = [
     {
-      header: "Nama Siswa",
+      header: "Biodata Siswa",
       render: (row) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xs font-black uppercase">
             {row.namaSiswa?.charAt(0) || "-"}
           </div>
-          <div className="flex flex-col">
+          <div className="flex flex-col text-left">
             <span className="text-[13px] font-black text-base-content leading-tight uppercase">
               {row.namaSiswa}
             </span>
-            {role === "admin" && (
-              <span className="text-[10px] font-mono opacity-50 mt-0.5">
-                {row.nisn}
-              </span>
-            )}
+            <span className="text-[10px] font-mono opacity-50 mt-0.5">
+              {row.nisn}
+            </span>
           </div>
         </div>
       ),
     },
     {
-      header: "Status Siswa",
+      header: "Skor IM (Anak / Wali)",
+      align: "center",
       render: (row) => (
-        <div
-          className={`badge font-black text-[10px] uppercase border-2 py-3 px-3 flex items-center gap-1.5 rounded-lg shadow-sm ${row.totalIsiSiswa > 0 ? "bg-primary/10 text-primary border-primary/20" : "bg-base-200 text-base-content/50 border-base-300"}`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${row.totalIsiSiswa > 0 ? "bg-primary animate-pulse" : "bg-base-content/30"}`}
-          />
-          {row.totalIsiSiswa} Kali Mengisi
+        <div className="flex items-center justify-center font-black font-mono text-xs gap-1">
+          <span className={row.skorSiswa.im > 25 ? "text-accent" : ""}>
+            {row.partisipasi.siswa > 0 ? row.skorSiswa.im : "-"}
+          </span>
+          <span className="opacity-30">/</span>
+          <span>
+            {row.partisipasi.orangTua > 0 ? row.skorOrTu.im : "-"}
+          </span>
         </div>
       ),
     },
     {
-      header: "Status Orang Tua",
+      header: "Skor SDE (Anak / Wali)",
+      align: "center",
       render: (row) => (
-        <div
-          className={`badge font-black text-[10px] uppercase border-2 py-3 px-3 flex items-center gap-1.5 rounded-lg shadow-sm ${row.totalIsiOT > 0 ? "bg-secondary/10 text-secondary border-secondary/20" : "bg-base-200 text-base-content/50 border-base-300"}`}
-        >
-          <span
-            className={`w-1.5 h-1.5 rounded-full ${row.totalIsiOT > 0 ? "bg-secondary animate-pulse" : "bg-base-content/30"}`}
-          />
-          {row.totalIsiOT} Kali Mengisi
+        <div className="flex items-center justify-center font-black font-mono text-xs gap-1">
+          <span className={row.skorSiswa.sde > 25 ? "text-accent" : ""}>
+            {row.partisipasi.siswa > 0 ? row.skorSiswa.sde : "-"}
+          </span>
+          <span className="opacity-30">/</span>
+          <span>
+            {row.partisipasi.orangTua > 0 ? row.skorOrTu.sde : "-"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Skor ACQ (Anak / Wali)",
+      align: "center",
+      render: (row) => (
+        <div className="flex items-center justify-center font-black font-mono text-xs gap-1">
+          <span className={row.skorSiswa.acq > 60 ? "text-accent" : ""}>
+            {row.partisipasi.siswa > 0 ? row.skorSiswa.acq : "-"}
+          </span>
+          <span className="opacity-30">/</span>
+          <span>
+            {row.partisipasi.orangTua > 0 ? row.skorOrTu.acq : "-"}
+          </span>
+        </div>
+      ),
+    },
+    {
+      header: "Partisipasi (Anak / Wali)",
+      align: "center",
+      render: (row) => (
+        <div className="flex items-center justify-center font-black font-mono text-xs gap-1">
+          <span className={row.partisipasi.siswa > 0 ? "text-primary font-bold" : "opacity-30"}>
+            {row.partisipasi.siswa > 0 ? "✅" : "❌"}
+          </span>
+          <span className="opacity-30">/</span>
+          <span className={row.partisipasi.orangTua > 0 ? "text-secondary font-bold" : "opacity-30"}>
+            {row.partisipasi.orangTua > 0 ? "✅" : "❌"}
+          </span>
         </div>
       ),
     },
     {
       header: "Aksi",
+      align: "center",
+      width: "140px",
       render: (row) => (
-        <button
-          className="btn btn-sm btn-ghost text-primary font-black rounded-xl border border-base-300 bg-base-100 hover:bg-primary hover:text-white hover:border-primary transition-all"
-          onClick={() => {
-            setSelectedSiswa(row);
-            setIsDetailOpen(true);
-          }}
-        >
-          <FaEye className="text-xs" /> LIHAT DETAIL
-        </button>
+        <div className="whitespace-nowrap">
+          <button
+            className="btn btn-xs btn-ghost text-primary font-black rounded-lg border border-base-300 bg-base-100 hover:bg-primary hover:text-white"
+            onClick={() => {
+              setSelectedSiswa(row);
+              setIsDetailOpen(true);
+            }}
+          >
+            <FaEye className="text-[10px]" /> LIHAT DETAIL
+          </button>
+        </div>
       ),
     },
   ];
 
-  const handleDateChange = (e, type) => {
+  const handleMonthChange = (e) => {
     const val = e.target.value;
-    if (!val) return;
-    const [year, month] = val.split("-").map(Number);
-    setDateRange((prev) => ({ ...prev, [type]: e.target.value }));
-    setFilter((prev) => ({
-      ...prev,
-      year: year,
-      [type === "start" ? "startMonth" : "endMonth"]: month,
-    }));
+    setSelectedPeriod(val);
+    if (val) {
+      const [year, month] = val.split("-").map(Number);
+      setFilter((prev) => ({ ...prev, bulan: month, tahun: year }));
+    }
   };
 
   return (
@@ -223,28 +339,32 @@ export default function AngketPage() {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-black text-base-content/50 uppercase tracking-widest ml-1">
-                Dari Bulan
+                Bulan Laporan
               </label>
               <input
                 type="month"
-                className="input input-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full"
+                className="input input-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full bg-base-100"
                 disabled={loading}
-                value={dateRange.start}
-                onChange={(e) => handleDateChange(e, "start")}
+                value={selectedPeriod}
+                onChange={handleMonthChange}
               />
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-black text-base-content/50 uppercase tracking-widest ml-1">
-                Hingga Bulan
+                Minggu Laporan
               </label>
-              <input
-                type="month"
-                className="input input-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full"
+              <select
+                className="select select-bordered border-2 border-base-300 focus:border-primary font-bold text-sm rounded-xl w-full bg-base-100"
+                value={filter.minggu}
                 disabled={loading}
-                value={dateRange.end}
-                onChange={(e) => handleDateChange(e, "end")}
-              />
+                onChange={(e) => setFilter({ ...filter, minggu: Number(e.target.value) })}
+              >
+                <option value={1}>Minggu ke-1 (Tanggal 1 - 7)</option>
+                <option value={2}>Minggu ke-2 (Tanggal 8 - 14)</option>
+                <option value={3}>Minggu ke-3 (Tanggal 15 - 21)</option>
+                <option value={4}>Minggu ke-4 (Tanggal 22+)</option>
+              </select>
             </div>
           </div>
 
@@ -287,6 +407,7 @@ export default function AngketPage() {
         title="Daftar Instrumen 📑"
         confirmText="Selesai"
         type="primary"
+        widthClass="max-w-3xl"
       >
         <div className="flex flex-col sm:flex-row gap-4 items-center bg-base-200/50 p-4 rounded-2xl border-2 border-base-300/50 shadow-inner mb-6">
           <div className="w-12 h-12 rounded-2xl bg-white shadow flex items-center justify-center text-primary text-xl font-black border border-base-300">
@@ -297,7 +418,7 @@ export default function AngketPage() {
               {selectedSiswa?.namaSiswa}
             </h3>
             <p className="text-[10px] font-bold text-base-content/50 uppercase mt-1">
-              Detail Riwayat Kuisioner Mingguan
+              Detail Riwayat Kuisioner | Minggu Ke-{filter.minggu}, {monthNames[filter.bulan]} {filter.tahun}
             </p>
           </div>
         </div>
@@ -318,15 +439,15 @@ export default function AngketPage() {
           </button>
         </div>
 
-        <div className="space-y-4 max-h-[55vh] overflow-y-auto pr-2 no-scrollbar">
+        <div className="space-y-4">
           {activeTab === "siswa" ? (
             <RenderLogs
-              logs={selectedSiswa?.allLogsSiswa}
+              logs={selectedSiswa?.siswaLogSelected ? [selectedSiswa.siswaLogSelected] : []}
               pertanyaan={PERNYATAAN_SISWA}
             />
           ) : (
             <RenderLogs
-              logs={selectedSiswa?.allLogsOT}
+              logs={selectedSiswa?.ortuLogSelected ? [selectedSiswa.ortuLogSelected] : []}
               pertanyaan={PERNYATAAN_OT}
             />
           )}
@@ -382,18 +503,18 @@ const RenderLogs = ({ logs, pertanyaan }) => {
           <table className="table table-zebra w-full border-spacing-0 border-separate">
             <thead className="bg-base-200/50">
               <tr>
-                <th className="w-12 text-center font-black text-[9px] uppercase tracking-widest border-r border-base-300/50">
+                 <th className="w-12 text-center font-black text-[11px] uppercase tracking-wider border-r border-base-300/50">
                   No
                 </th>
-                <th className="font-black text-[9px] uppercase tracking-widest text-left">
+                <th className="font-black text-[11px] uppercase tracking-wider text-left">
                   Indikator Instrumen
                 </th>
-                <th className="w-20 text-center font-black text-[9px] uppercase tracking-widest">
+                <th className="w-20 text-center font-black text-[11px] uppercase tracking-wider">
                   Nilai
                 </th>
               </tr>
             </thead>
-            <tbody className="font-bold text-[12px]">
+            <tbody className="font-bold text-sm">
               {pertanyaan.map((p) => {
                 const scoreVal = log[`p${p.id}`];
                 let badgeColor = "bg-warning/10 text-warning border-warning/20";
@@ -407,7 +528,7 @@ const RenderLogs = ({ logs, pertanyaan }) => {
                     key={p.id}
                     className="hover:bg-base-200/30 transition-colors"
                   >
-                    <td className="text-center opacity-40 font-mono border-r border-base-200/50 text-[10px]">
+                    <td className="text-center opacity-40 font-mono border-r border-base-200/50 text-xs">
                       {p.id}
                     </td>
                     <td className="whitespace-normal leading-relaxed text-base-content/80 font-medium py-3">

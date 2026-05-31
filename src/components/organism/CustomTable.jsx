@@ -49,7 +49,11 @@ export default function CustomTable({
             <tr>
               <th className="w-16 text-center py-5 px-4 border-none">No</th>
               {columns.map((col, i) => (
-                <th key={i} className="py-5 border-none text-left whitespace-nowrap">
+                <th 
+                  key={i} 
+                  className={`py-5 border-none whitespace-nowrap ${col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"} ${col.headerClassName || ""}`}
+                  style={col.width ? { width: col.width } : undefined}
+                >
                   {col.header}
                 </th>
               ))}
@@ -72,7 +76,11 @@ export default function CustomTable({
                     {(currentPage - 1) * limit + (rowIndex + 1)}
                   </td>
                   {columns.map((col, colIndex) => (
-                    <td key={colIndex} className="py-4 align-middle">
+                    <td 
+                      key={colIndex} 
+                      className={`py-4 align-middle ${col.align === "center" ? "text-center" : col.align === "right" ? "text-right" : "text-left"} ${col.cellClassName || ""}`}
+                      style={col.width ? { width: col.width } : undefined}
+                    >
                       <div className="transition-all group-hover:translate-x-0.5 duration-200">
                          {col.render ? col.render(row) : row[col.accessor]}
                       </div>

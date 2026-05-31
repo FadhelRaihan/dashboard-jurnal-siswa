@@ -8,40 +8,43 @@ import { angketSiswaService } from "../../../services";
 import CustomModal from "../../../components/organism/CustomModal";
 
 const PERNYATAAN_LIST = [
-  // Bagian 1: Pernyataan Perilaku / IM-7K (1-6)
+  // DIMENSI IM (Impression Management)
   { id: 1, text: "Saya selalu bangun pagi tepat waktu." },
   { id: 2, text: "Saya selalu melaksanakan ibadah tepat waktu setiap hari." },
   { id: 3, text: "Saya selalu berolahraga (misalnya jalan kaki, berlari, senam, atau bermain bola)." },
-  { id: 4, text: "Saya tidak pernah menunda mengerjakan tugas sekolah dan selalu belajar di rumah (membaca buku, mengerjakan tugas, atau latihan soal)." },
-  { id: 5, text: "Saya selalu membantu orang lain tanpa diminta (membantu di rumah atau membantu teman di sekolah)." },
-  { id: 6, text: "Saya selalu menjaga kebersihan diri dan lingkungan sekolah (merapikan barang dan membuang sampah)." },
+  { id: 4, text: "Saya selalu makan makanan yang sehat dan bergizi setiap hari." },
+  { id: 5, text: "Saya tidak pernah menunda mengerjakan tugas sekolah dan selalu belajar di rumah (misalnya membaca buku pelajaran, buku cerita, mengerjakan tugas, atau latihan soal)." },
+  { id: 6, text: "Saya selalu membantu orang lain tanpa diminta (membantu di rumah atau membantu teman di sekolah)." },
+  { id: 7, text: "Saya selalu tidur lebih awal pada malam hari sesuai jadwal yang dianjurkan." },
 
-  // Bagian 2: Pernyataan Persepsi Diri / SDE-7K (7-12)
-  { id: 7, text: "Saya selalu datang tepat waktu ke sekolah dan selalu belajar setiap hari." },
-  { id: 8, text: "Saya merasa selalu benar saat belajar." },
-  { id: 9, text: "Saya merasa sudah rajin walaupun jarang belajar di rumah." },
-  { id: 10, text: "Saya merasa selalu berkata jujur kepada siapa pun." },
-  { id: 11, text: "Saya merasa sering membantu dan peduli kepada teman." },
-  { id: 12, text: "Saya merasa kebiasaan saya lebih baik dari teman saya." },
+  // DIMENSI SDE (Self-Deceptive Enhancement)
+  { id: 8, text: "Saya selalu datang tepat waktu ke sekolah dan mengikuti aturan yang berlaku." },
+  { id: 9, text: "Saya merasa selalu benar saat belajar." },
+  { id: 10, text: "Saya merasa sudah rajin walaupun jarang belajar di rumah." },
+  { id: 11, text: "Saya merasa selalu berkata jujur kepada siapa pun." },
+  { id: 12, text: "Saya merasa sering membantu dan peduli kepada teman." },
+  { id: 13, text: "Saya merasa kebiasaan tidur saya lebih baik dibandingkan teman-teman saya." },
+  { id: 14, text: "Saya merasa kebiasaan saya lebih baik daripada teman saya." },
 
-  // Bagian 3: Pernyataan Kepatuhan / MIN (13-18)
-  { id: 13, text: "Saya selalu setuju dengan semua aturan sekolah." },
-  { id: 14, text: "Saya selalu mengikuti apa yang dikatakan guru tanpa memikirkan pendapat saya." },
-  { id: 15, text: "Saya sering mengikuti jawaban teman." },
-  { id: 16, text: "Saya sering langsung memilih jawaban \"setuju\"." },
-  { id: 17, text: "Saya mengikuti jawaban teman saat mengisi jurnal 7 Kebiasaan Anak Indonesia Hebat." },
-  { id: 18, text: "Saya memilih jawaban yang terlihat paling baik." },
+  // DIMENSI ACQ (Acquiescence) - ACQ Umum
+  { id: 15, text: "Saya selalu setuju dengan semua aturan sekolah." },
+  { id: 16, text: "Saya selalu mengikuti apa yang dikatakan guru tanpa memikirkan pendapat saya." },
+  { id: 17, text: "Saya sering mengikuti jawaban teman." },
+  { id: 18, text: "Saya sering langsung memilih jawaban \"setuju\"." },
+  { id: 19, text: "Saya mengikuti jawaban teman saat mengisi jurnal 7 Kebiasaan Anak Indonesia Hebat." },
+  { id: 20, text: "Saya memilih jawaban yang terlihat paling baik." },
 
-  // Bagian 4: Pernyataan Spesifik / MIN (19-27)
-  { id: 19, text: "Saya bangun pagi karena disuruh, bukan karena tahu manfaatnya." },
-  { id: 20, text: "Saya selalu melaksanakan ibadah karena diingatkan orang tua atau mengikuti orang lain." },
-  { id: 21, text: "Saya langsung ikut saat diminta berolahraga." },
-  { id: 22, text: "Saya selalu setuju bahwa belajar itu penting walaupun tidak tahu alasannya." },
-  { id: 23, text: "Saya mengerjakan tugas karena disuruh guru." },
-  { id: 24, text: "Saya langsung setuju saat diminta membantu orang lain." },
-  { id: 25, text: "Saya selalu menjaga kebersihan karena disuruh." },
-  { id: 26, text: "Saya sering menjawab setuju karena merasa itu jawaban yang paling baik." },
-  { id: 27, text: "Saya sering mengikuti jawaban teman saat mengisi jurnal 7 Kebiasaan." },
+  // ACQ Per Indikator
+  { id: 21, text: "Saya bangun pagi karena disuruh, bukan karena tahu manfaatnya." },
+  { id: 22, text: "Saya melaksanakan ibadah karena diingatkan orang tua atau mengikuti orang lain." },
+  { id: 23, text: "Saya langsung ikut saat diminta berolahraga." },
+  { id: 24, text: "Saya makan makanan sehat karena disuruh orang tua." },
+  { id: 25, text: "Saya selalu setuju bahwa belajar itu penting walaupun tidak tahu alasannya." },
+  { id: 26, text: "Saya mengerjakan tugas karena disuruh guru." },
+  { id: 27, text: "Saya langsung setuju saat diminta membantu orang lain." },
+  { id: 28, text: "Saya tidur lebih awal karena disuruh orang tua, bukan karena kemauan saya sendiri." },
+  { id: 29, text: "Saya sering menjawab setuju karena merasa itu jawaban yang paling baik." },
+  { id: 30, text: "Saya sering mengikuti jawaban teman saat mengisi jurnal 7 Kebiasaan." },
 ];
 
 export default function AngketMingguanSiswaPage() {
@@ -391,10 +394,10 @@ export default function AngketMingguanSiswaPage() {
           <div className="flex flex-col gap-4">
             {PERNYATAAN_LIST.map((item, index) => {
               const isAnswered = !!responses[item.id];
-              const currentSection = (index === 0 && "💡 Bagian 1: Perilakuku") ||
-                (index === 6 && "👤 Bagian 2: Tentang Diriku") ||
-                (index === 12 && "🧠 Bagian 3: Apa yang Kupikirkan") ||
-                (index === 18 && "💫 Bagian 4: Kebiasaanku");
+              const currentSection = (index === 0 && "💡 Bagian 1: Perilakuku (IM)") ||
+                (index === 7 && "👤 Bagian 2: Tentang Diriku (SDE)") ||
+                (index === 14 && "🧠 Bagian 3: Sikap Umum (ACQ)") ||
+                (index === 20 && "💫 Bagian 4: Kebiasaan Khusus (ACQ)");
 
               return (
                 <React.Fragment key={item.id}>

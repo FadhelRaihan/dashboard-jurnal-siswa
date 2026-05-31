@@ -705,6 +705,7 @@ export default function RekapKebiasaanPage() {
         isLoading={loadingDetail}
         type="primary"
         hiddenCancel={true}
+        widthClass="max-w-3xl"
       >
         <div className="flex items-center gap-3 mb-4 p-4 bg-base-200/50 rounded-2xl border border-base-200 shadow-inner">
           <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center text-lg font-black">
@@ -720,7 +721,7 @@ export default function RekapKebiasaanPage() {
           </div>
         </div>
 
-        <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2 no-scrollbar">
+        <div className="space-y-6">
           {detailJurnal.length > 0
             ? detailJurnal.map((jurnal, idx) => (
                 <div
@@ -773,7 +774,7 @@ export default function RekapKebiasaanPage() {
                           key={cat.key}
                           className="flex flex-col items-center bg-base-200/50 p-2 rounded-xl border border-base-300/50 group transition-all hover:shadow-md relative overflow-hidden"
                         >
-                          <span className="text-[8px] uppercase font-black opacity-60 mb-1 truncate w-full text-center tracking-tighter">
+                          <span className="text-[10px] uppercase font-black opacity-60 mb-1 truncate w-full text-center tracking-wider">
                             {cat.label}
                           </span>
 

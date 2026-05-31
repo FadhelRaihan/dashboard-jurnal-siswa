@@ -9,40 +9,43 @@ import { angketOrangTuaService } from "../../../services";
 import CustomModal from "../../../components/organism/CustomModal";
 
 const PERNYATAAN_LIST = [
-  // Bagian 1: Pernyataan Perilaku / IM-7K (1-6)
+  // Bagian 1: Pernyataan Perilaku / IM-7K (1-7)
   { id: 1, text: "Saya selalu membangunkan anak saya setiap pagi." },
   { id: 2, text: "Saya selalu mengingatkan anak saya untuk melaksanakan ibadah tepat waktu setiap hari." },
-  { id: 3, text: "Saya selalu mengajak/mengingatkan anak saya berolahraga (berlari, jalan kaki, senam)." },
-  { id: 4, text: "Saya selalu mengingatkan anak saya belajar di rumah." },
-  { id: 5, text: "Saya selalu membiasakan anak saya membantu di rumah atau membantu temannya." },
-  { id: 6, text: "Saya selalu membiasakan anak saya untuk menjaga kebersihan di lingkungan rumah." },
+  { id: 3, text: "Saya selalu mengajak atau mengingatkan anak saya berolahraga." },
+  { id: 4, text: "Saya selalu membiasakan anak saya mengonsumsi makanan sehat dan bergizi." },
+  { id: 5, text: "Saya selalu mengingatkan anak saya belajar di rumah." },
+  { id: 6, text: "Saya selalu membiasakan anak saya membantu di rumah atau membantu temannya." },
+  { id: 7, text: "Saya selalu membiasakan anak saya tidur lebih awal pada malam hari." },
 
-  // Bagian 2: Pernyataan Persepsi Diri / SDE-7K (7-12)
-  { id: 7, text: "Saya merasa anak saya selalu mengikuti aturan di rumah." },
-  { id: 8, text: "Saya merasa anak saya selalu benar saat belajar di rumah." },
-  { id: 9, text: "Saya merasa anak saya belajar atau membaca buku, mengerjakan tugas, dan berlatih soal setiap hari di rumah." },
-  { id: 10, text: "Saya merasa anak saya selalu berkata jujur kepada orang lain." },
-  { id: 11, text: "Saya merasa anak saya selalu membantu dan peduli kepada temannya." },
-  { id: 12, text: "Saya merasa kebiasaan anak saya di rumah sudah baik." },
+  // Bagian 2: Pernyataan Persepsi Diri / SDE-7K (8-14)
+  { id: 8, text: "Saya merasa anak saya selalu mengikuti aturan di rumah." },
+  { id: 9, text: "Saya merasa anak saya selalu benar saat belajar di rumah." },
+  { id: 10, text: "Saya merasa anak saya belajar setiap hari di rumah." },
+  { id: 11, text: "Saya merasa anak saya selalu berkata jujur kepada orang lain." },
+  { id: 12, text: "Saya merasa anak saya selalu membantu dan peduli kepada temannya." },
+  { id: 13, text: "Saya merasa kebiasaan tidur anak saya lebih baik dibandingkan anak seusianya." },
+  { id: 14, text: "Saya merasa kebiasaan anak saya di rumah sudah baik." },
 
-  // Bagian 3: Pernyataan Kepatuhan / MIN (13-18)
-  { id: 13, text: "Saya memperhatikan anak saya selalu langsung menuruti semua aturan di rumah tanpa pernah bertanya alasannya." },
-  { id: 14, text: "Saya melihat anak saya selalu mengikuti semua perkataan gurunya meskipun dia punya keinginan sendiri." },
-  { id: 15, text: "Saya melihat anak saya sering ikut-ikutan saja menyetujui ajakan temannya padahal dirinya sendiri masih ragu." },
-  { id: 16, text: "Saya memperhatikan anak saya terbiasa cepat memilih jawaban \"setuju\" saat sedang mengisi kuesioner." },
-  { id: 17, text: "Saya melihat anak saya suka meniru atau menyontek pilihan jawaban temannya ketika mereka mengisi tugas bersama." },
-  { id: 18, text: "Saya memperhatikan anak saya sengaja memilih jawaban paling bagus." },
+  // Bagian 3: Pernyataan Kepatuhan Umum / ACQ (15-20)
+  { id: 15, text: "Anak saya selalu langsung menuruti semua aturan di rumah tanpa bertanya alasannya." },
+  { id: 16, text: "Anak saya selalu mengikuti semua perkataan gurunya meskipun memiliki keinginan sendiri." },
+  { id: 17, text: "Anak saya sering ikut-ikutan menyetujui ajakan temannya." },
+  { id: 18, text: "Anak saya terbiasa cepat memilih jawaban \"setuju\" saat mengisi kuesioner." },
+  { id: 19, text: "Anak saya suka meniru pilihan jawaban temannya saat mengisi tugas bersama." },
+  { id: 20, text: "Anak saya sengaja memilih jawaban yang paling bagus." },
 
-  // Bagian 4: Pernyataan Spesifik / MIN (19-27)
-  { id: 19, text: "Saya melihat anak saya menerima aturan bangun pagi tanpa pernah mengeluh atau protes sedikit pun." },
-  { id: 20, text: "Saya memperhatikan anak saya ikut beribadah harian karena sekadar ikut-ikutan orang di rumah." },
-  { id: 21, text: "Saya melihat anak saya langsung ikut berolahraga saat diminta, padahal kondisi badannya sedang kelihatan tidak bergairah." },
-  { id: 22, text: "Saya memperhatikan anak saya hanya mengiyakan kalau belajar itu penting tanpa benar-benar paham apa manfaatnya." },
-  { id: 23, text: "Saya melihat anak saya mengerjakan tugas sekolah supaya tidak dimarahi guru, bukan dari kesadaran sendirinya." },
-  { id: 24, text: "Saya memperhatikan anak saya selalu menolong temannya tanpa memikirkan alasannya." },
-  { id: 25, text: "Saya memperhatikan anak saya menjaga kebersihan hanya karena takut ditegur, bukan karena sadar kesehatan." },
-  { id: 26, text: "Saya memperhatikan anak saya cenderung memilih jawaban \"setuju\" karena tahu itu jawaban yang ingin didengar oleh guru atau saya." },
-  { id: 27, text: "Saya melihat anak saya selalu mengikuti jawaban temannya saat mengisi jurnal 7 kebiasaan." },
+  // Bagian 4: Pernyataan Spesifik Per Indikator / ACQ (21-30)
+  { id: 21, text: "Anak saya menerima aturan bangun pagi tanpa memahami manfaatnya." },
+  { id: 22, text: "Anak saya beribadah karena sekadar mengikuti orang lain." },
+  { id: 23, text: "Anak saya langsung ikut berolahraga saat diminta." },
+  { id: 24, text: "Anak saya makan makanan sehat karena disuruh orang tua." },
+  { id: 25, text: "Anak saya hanya mengiyakan bahwa belajar itu penting tanpa memahami manfaatnya." },
+  { id: 26, text: "Anak saya mengerjakan tugas sekolah agar tidak dimarahi guru." },
+  { id: 27, text: "Anak saya selalu menolong temannya tanpa memikirkan alasannya." },
+  { id: 28, text: "Anak saya tidur lebih awal karena disuruh orang tua, bukan karena kesadarannya sendiri." },
+  { id: 29, text: "Anak saya cenderung memilih jawaban \"setuju\" karena tahu itu jawaban yang ingin didengar guru atau orang tua." },
+  { id: 30, text: "Anak saya mengikuti jawaban temannya saat mengisi jurnal 7 Kebiasaan." },
 ];
 
 export default function AngketMingguanOrangTuaPage() {
@@ -360,10 +363,10 @@ export default function AngketMingguanOrangTuaPage() {
           <div className="flex flex-col gap-4">
             {PERNYATAAN_LIST.map((item, index) => {
               const isAnswered = !!responses[item.id];
-              const currentSection = (index === 0 && "📋 Perilaku Keseharian") ||
-                (index === 6 && "📊 Persepsi Kondisi Diri") ||
-                (index === 12 && "💡 Pola Pikir Anak") ||
-                (index === 18 && "🔗 Kepatuhan & Respons");
+              const currentSection = (index === 0 && "📋 Bagian 1: Perilaku Keseharian (IM)") ||
+                (index === 7 && "📊 Bagian 2: Persepsi Kondisi Diri (SDE)") ||
+                (index === 14 && "💡 Bagian 3: Pola Pikir Anak (ACQ)") ||
+                (index === 20 && "🔗 Bagian 4: Kepatuhan & Respons (ACQ)");
 
               return (
                 <React.Fragment key={item.id}>

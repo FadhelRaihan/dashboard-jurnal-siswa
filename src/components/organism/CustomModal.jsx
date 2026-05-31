@@ -13,6 +13,7 @@ const CustomModal = ({
     type = "primary", // Bisa 'primary', 'secondary', 'accent', 'error'
     children,
     hiddenCancel = false,
+    widthClass = "max-w-lg",
 }) => {
     if (!isOpen) return null;
 
@@ -25,7 +26,7 @@ const CustomModal = ({
             ></div>
 
             {/* Modal Container */}
-            <div className="relative bg-base-100 rounded-lg shadow-2xl w-full max-w-lg mx-4 overflow-hidden border border-base-300">
+            <div className={`relative bg-base-100 rounded-lg shadow-2xl w-full ${widthClass} mx-4 overflow-hidden border border-base-300`}>
                 
                 {/* HEADER */}
                 <div className="flex justify-between items-center border-b border-base-200 px-6 py-4 bg-base-100">
