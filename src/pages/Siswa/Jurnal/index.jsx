@@ -174,7 +174,7 @@ export default function SiswaJurnalPage() {
   const [checkingStatus, setCheckingStatus] = useState(true)
   const [alreadySubmitted, setAlreadySubmitted] = useState(false)
   const [todayData, setTodayData] = useState(null)
-  const [selectedDate] = useState(getTodayDateString())
+  const [selectedDate, setSelectedDate] = useState(getTodayDateString())
   const [showGuide, setShowGuide] = useState(true)
 
   const [photos, setPhotos] = useState({
@@ -186,92 +186,6 @@ export default function SiswaJurnalPage() {
     fotoSosial: null,
     fotoTidur: null,
   })
-
-  const userProfile = JSON.parse(localStorage.getItem("user") || "{}")
-
-  useEffect(() => {
-    const checkTodayStatus = async () => {
-      const validNisn = userProfile.nisn || userProfile.NISN
-      const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
-
-      const isCorrupt = (val) => {
-        if (!val) return true
-        const strVal = String(val).toLowerCase().trim()
-        return strVal === "" || strVal === "undefined" || strVal === "null"
-      }
-
-      const safeIntOrNull = (v) => {
-        if (v === undefined || v === null || v === "") return null
-        const num = Number(v)
-        return isNaN(num) ? null : num
-      }
-
-      if (isCorrupt(validNisn) || isCorrupt(validNama)) {
-        setCheckingStatus(false)
-        return
-      }
-
-      try {
-        const today = getTodayDateString()
-        // Mengambil data dengan limit tinggi dan memfilternya di sisi klien
-        const res = await jurnalKaihService.getHistory({ limit: 1000 })
-        
-        if (res && res.status && res.data && Array.isArray(res.data.items)) {
-          const existing = [...res.data.items].reverse().find((item) => {
-            const matchNisn = String(item.nisn) === String(validNisn)
-            
-            if (!item.tanggal) return false
-            // Konversi string tanggal ISO agar menyesuaikan waktu lokal pengguna (WIB)
-            const itemDate = new Date(item.tanggal)
-            const year = itemDate.getFullYear()
-            const month = String(itemDate.getMonth() + 1).padStart(2, '0')
-            const day = String(itemDate.getDate()).padStart(2, '0')
-            const itemDateStr = `${year}-${month}-${day}`
-            
-            return matchNisn && itemDateStr === today
-          })
-
-          if (existing) {
-            const isLocked = existing.isLocked === "true" || existing.isLocked === true || existing.isLocked == 1
-            if (isLocked) {
-              setAlreadySubmitted(true)
-              setTodayData(existing)
-            } else {
-              setAlreadySubmitted(false)
-              setTodayData(existing)
-              setJournal({
-                bangun_pagi: safeIntOrNull(existing.bangunPagi),
-                berolahraga: safeIntOrNull(existing.berolahraga),
-                beribadah: {
-                  mode: existing.ibadahMode || null,
-                  value: safeIntOrNull(existing.ibadahValue)
-                },
-                makan_sehat: safeIntOrNull(existing.makanSehat),
-                gemar_belajar: safeIntOrNull(existing.gemarBelajar),
-                bermasyarakat: safeIntOrNull(existing.bermasyarakat),
-                tidur_cepat: safeIntOrNull(existing.tidurCepat),
-              })
-              setPhotos({
-                fotoBangunPagi: cleanPhotoUrl(existing.fotoBangunPagi),
-                fotoOlahraga: cleanPhotoUrl(existing.fotoOlahraga),
-                fotoIbadah: cleanPhotoUrl(existing.fotoIbadah),
-                fotoMakan: cleanPhotoUrl(existing.fotoMakan),
-                fotoBelajar: cleanPhotoUrl(existing.fotoBelajar),
-                fotoSosial: cleanPhotoUrl(existing.fotoSosial),
-                fotoTidur: cleanPhotoUrl(existing.fotoTidur),
-              })
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Gagal memeriksa riwayat jurnal hari ini:", err)
-      } finally {
-        setCheckingStatus(false)
-      }
-    }
-
-    checkTodayStatus()
-  }, [])
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -291,6 +205,8 @@ export default function SiswaJurnalPage() {
     tidur_cepat: null,
   })
 
+  const userProfile = JSON.parse(localStorage.getItem("user") || "{}")
+
   const points = useMemo(() => {
     const safe = (v) => (typeof v === "number" ? v : 0)
     return {
@@ -305,6 +221,245 @@ export default function SiswaJurnalPage() {
   }, [journal])
 
   const total = useMemo(() => Object.values(points).reduce((a, b) => a + b, 0), [points])
+
+  const resetForm = () => {
+    setJournal({
+      bangun_pagi: null,
+      berolahraga: null,
+      beribadah: { mode: null, value: null },
+      makan_sehat: null,
+      gemar_belajar: null,
+      bermasyarakat: null,
+      tidur_cepat: null,
+    })
+    setPhotos({
+      fotoBangunPagi: null,
+      fotoOlahraga: null,
+      fotoIbadah: null,
+      fotoMakan: null,
+      fotoBelajar: null,
+      fotoSosial: null,
+      fotoTidur: null,
+    })
+  }
+
+  const checkTodayStatus = async (targetDate = getTodayDateString()) => {
+    setCheckingStatus(true)
+    const validNisn = userProfile.nisn || userProfile.NISN
+    const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
+
+    const isCorrupt = (val) => {
+      if (!val) return true
+      const strVal = String(val).toLowerCase().trim()
+      return strVal === "" || strVal === "undefined" || strVal === "null"
+    }
+
+    const safeIntOrNull = (v) => {
+      if (v === undefined || v === null || v === "") return null
+      const num = Number(v)
+      return isNaN(num) ? null : num
+    }
+
+    if (isCorrupt(validNisn) || isCorrupt(validNama)) {
+      setCheckingStatus(false)
+      return
+    }
+
+    try {
+      // Mengambil data dengan limit tinggi dan memfilternya di sisi klien
+      const res = await jurnalKaihService.getHistory({ limit: 1000 })
+      
+      if (res && res.status && res.data && Array.isArray(res.data.items)) {
+        // 1. Kunci otomatis draf hari-hari sebelumnya yang belum dikunci di database
+        const pastDrafts = res.data.items.filter((item) => {
+          const matchNisn = String(item.nisn) === String(validNisn)
+          if (!item.tanggal) return false
+          
+          const itemDate = new Date(item.tanggal)
+          const year = itemDate.getFullYear()
+          const month = String(itemDate.getMonth() + 1).padStart(2, '0')
+          const day = String(itemDate.getDate()).padStart(2, '0')
+          const itemDateStr = `${year}-${month}-${day}`
+          
+          const isLocked = item.isLocked === "true" || item.isLocked === true || item.isLocked == 1
+          return matchNisn && itemDateStr < targetDate && !isLocked
+        })
+
+        if (pastDrafts.length > 0) {
+          for (const draft of pastDrafts) {
+            const draftDate = new Date(draft.tanggal)
+            const dYear = draftDate.getFullYear()
+            const dMonth = String(draftDate.getMonth() + 1).padStart(2, '0')
+            const dDay = String(draftDate.getDate()).padStart(2, '0')
+            const draftDateStr = `${dYear}-${dMonth}-${dDay}`
+
+            const tempPoints = {
+              bangun_pagi: safeIntOrNull(draft.bangunPagi) || 0,
+              beribadah: safeIntOrNull(draft.ibadahValue) || 0,
+              berolahraga: safeIntOrNull(draft.berolahraga) || 0,
+              makan_sehat: safeIntOrNull(draft.makanSehat) || 0,
+              gemar_belajar: safeIntOrNull(draft.gemarBelajar) || 0,
+              bermasyarakat: safeIntOrNull(draft.bermasyarakat) || 0,
+              tidur_cepat: safeIntOrNull(draft.tidurCepat) || 0,
+            }
+            const computedTotal = Object.values(tempPoints).reduce((a, b) => a + b, 0)
+
+            await jurnalKaihService.submit({
+              tanggal: draftDateStr,
+              nisn: validNisn,
+              namaSiswa: validNama,
+              bangunPagi: safeIntOrNull(draft.bangunPagi),
+              berolahraga: safeIntOrNull(draft.berolahraga),
+              ibadahMode: draft.ibadahMode || null,
+              ibadahValue: safeIntOrNull(draft.ibadahValue),
+              makanSehat: safeIntOrNull(draft.makanSehat),
+              gemarBelajar: safeIntOrNull(draft.gemarBelajar),
+              bermasyarakat: safeIntOrNull(draft.bermasyarakat),
+              tidurCepat: safeIntOrNull(draft.tidurCepat),
+              totalPoin: computedTotal,
+              fotoBangunPagi: cleanPhotoUrl(draft.fotoBangunPagi),
+              fotoOlahraga: cleanPhotoUrl(draft.fotoOlahraga),
+              fotoIbadah: cleanPhotoUrl(draft.fotoIbadah),
+              fotoMakan: cleanPhotoUrl(draft.fotoMakan),
+              fotoBelajar: cleanPhotoUrl(draft.fotoBelajar),
+              fotoSosial: cleanPhotoUrl(draft.fotoSosial),
+              fotoTidur: cleanPhotoUrl(draft.fotoTidur),
+              isLocked: true
+            })
+          }
+        }
+
+        // 2. Cari data hari target (hari ini)
+        const existing = [...res.data.items].reverse().find((item) => {
+          const matchNisn = String(item.nisn) === String(validNisn)
+          
+          if (!item.tanggal) return false
+          const itemDate = new Date(item.tanggal)
+          const year = itemDate.getFullYear()
+          const month = String(itemDate.getMonth() + 1).padStart(2, '0')
+          const day = String(itemDate.getDate()).padStart(2, '0')
+          const itemDateStr = `${year}-${month}-${day}`
+          
+          return matchNisn && itemDateStr === targetDate
+        })
+
+        if (existing) {
+          const isLocked = existing.isLocked === "true" || existing.isLocked === true || existing.isLocked == 1
+          if (isLocked) {
+            setAlreadySubmitted(true)
+            setTodayData(existing)
+          } else {
+            setAlreadySubmitted(false)
+            setTodayData(existing)
+            setJournal({
+              bangun_pagi: safeIntOrNull(existing.bangunPagi),
+              berolahraga: safeIntOrNull(existing.berolahraga),
+              beribadah: {
+                mode: existing.ibadahMode || null,
+                value: safeIntOrNull(existing.ibadahValue)
+              },
+              makan_sehat: safeIntOrNull(existing.makanSehat),
+              gemar_belajar: safeIntOrNull(existing.gemarBelajar),
+              bermasyarakat: safeIntOrNull(existing.bermasyarakat),
+              tidur_cepat: safeIntOrNull(existing.tidurCepat),
+            })
+            setPhotos({
+              fotoBangunPagi: cleanPhotoUrl(existing.fotoBangunPagi),
+              fotoOlahraga: cleanPhotoUrl(existing.fotoOlahraga),
+              fotoIbadah: cleanPhotoUrl(existing.fotoIbadah),
+              fotoMakan: cleanPhotoUrl(existing.fotoMakan),
+              fotoBelajar: cleanPhotoUrl(existing.fotoBelajar),
+              fotoSosial: cleanPhotoUrl(existing.fotoSosial),
+              fotoTidur: cleanPhotoUrl(existing.fotoTidur),
+            })
+          }
+        } else {
+          setAlreadySubmitted(false)
+          setTodayData(null)
+          resetForm()
+        }
+      }
+    } catch (err) {
+      console.error("Gagal memeriksa riwayat jurnal hari ini:", err)
+    } finally {
+      setCheckingStatus(false)
+    }
+  }
+
+  useEffect(() => {
+    checkTodayStatus(getTodayDateString())
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const today = getTodayDateString()
+      if (today !== selectedDate) {
+        // Pergantian hari terdeteksi!
+        const isDraftLocked = todayData?.isLocked === "true" || todayData?.isLocked === true || todayData?.isLocked == 1
+        const hasDraft = todayData !== null && !isDraftLocked
+
+        const hasFilledAny = Object.keys(journal).some((key) => {
+          if (key === "beribadah") {
+            return journal.beribadah.value !== null
+          }
+          return journal[key] !== null
+        })
+
+        if (hasDraft || hasFilledAny) {
+          // Kunci form saat ini ke tanggal kemarin secara otomatis di database
+          const validNisn = userProfile.nisn || userProfile.NISN
+          const validNama = userProfile.nama || userProfile.namaLengkap || userProfile.namaSiswa
+          if (validNisn && validNama) {
+            const tempPoints = {
+              bangun_pagi: journal.bangun_pagi || 0,
+              beribadah: journal.beribadah.value || 0,
+              berolahraga: journal.berolahraga || 0,
+              makan_sehat: journal.makan_sehat || 0,
+              gemar_belajar: journal.gemar_belajar || 0,
+              bermasyarakat: journal.bermasyarakat || 0,
+              tidur_cepat: journal.tidur_cepat || 0,
+            }
+            const computedTotal = Object.values(tempPoints).reduce((a, b) => a + b, 0)
+
+            const payload = {
+              tanggal: selectedDate,
+              nisn: validNisn,
+              namaSiswa: validNama,
+              bangunPagi: journal.bangun_pagi,
+              berolahraga: journal.berolahraga,
+              ibadahMode: journal.beribadah.mode,
+              ibadahValue: journal.beribadah.value,
+              makanSehat: journal.makan_sehat,
+              gemarBelajar: journal.gemar_belajar,
+              bermasyarakat: journal.bermasyarakat,
+              tidurCepat: journal.tidur_cepat,
+              totalPoin: computedTotal,
+              fotoBangunPagi: photos.fotoBangunPagi,
+              fotoOlahraga: photos.fotoOlahraga,
+              fotoIbadah: photos.fotoIbadah,
+              fotoMakan: photos.fotoMakan,
+              fotoBelajar: photos.fotoBelajar,
+              fotoSosial: photos.fotoSosial,
+              fotoTidur: photos.fotoTidur,
+              isLocked: true
+            }
+            try {
+              await jurnalKaihService.submit(payload)
+            } catch (err) {
+              console.error("Gagal mengunci draf hari kemarin secara otomatis:", err)
+            }
+          }
+        }
+
+        // Reset form untuk hari baru
+        resetForm()
+        setSelectedDate(today)
+        await checkTodayStatus(today)
+      }
+    }, 10000) // Cek setiap 10 detik
+
+    return () => clearInterval(interval)
+  }, [selectedDate, journal, photos, todayData])
 
   const handleFileChange = (e, key) => {
     if (e === null) {
@@ -342,27 +497,6 @@ export default function SiswaJurnalPage() {
       }
       reader.readAsDataURL(file)
     }
-  }
-
-  const resetForm = () => {
-    setJournal({
-      bangun_pagi: null,
-      berolahraga: null,
-      beribadah: { mode: null, value: null },
-      makan_sehat: null,
-      gemar_belajar: null,
-      bermasyarakat: null,
-      tidur_cepat: null,
-    })
-    setPhotos({
-      fotoBangunPagi: null,
-      fotoOlahraga: null,
-      fotoIbadah: null,
-      fotoMakan: null,
-      fotoBelajar: null,
-      fotoSosial: null,
-      fotoTidur: null,
-    })
   }
 
   const PhotoUploadInput = ({ id, currentPhoto, onChange }) => (
