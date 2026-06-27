@@ -270,65 +270,6 @@ export default function SiswaJurnalPage() {
       const res = await jurnalKaihService.getHistory({ limit: 1000 })
       
       if (res && res.status && res.data && Array.isArray(res.data.items)) {
-        // 1. Kunci otomatis draf hari-hari sebelumnya yang belum dikunci di database
-        const pastDrafts = res.data.items.filter((item) => {
-          const matchNisn = String(item.nisn) === String(validNisn)
-          if (!item.tanggal) return false
-          
-          const itemDate = new Date(item.tanggal)
-          const year = itemDate.getFullYear()
-          const month = String(itemDate.getMonth() + 1).padStart(2, '0')
-          const day = String(itemDate.getDate()).padStart(2, '0')
-          const itemDateStr = `${year}-${month}-${day}`
-          
-          const isLocked = item.isLocked === "true" || item.isLocked === true || item.isLocked == 1
-          return matchNisn && itemDateStr < targetDate && !isLocked
-        })
-
-        if (pastDrafts.length > 0) {
-          for (const draft of pastDrafts) {
-            const draftDate = new Date(draft.tanggal)
-            const dYear = draftDate.getFullYear()
-            const dMonth = String(draftDate.getMonth() + 1).padStart(2, '0')
-            const dDay = String(draftDate.getDate()).padStart(2, '0')
-            const draftDateStr = `${dYear}-${dMonth}-${dDay}`
-
-            const tempPoints = {
-              bangun_pagi: safeIntOrNull(draft.bangunPagi) || 0,
-              beribadah: safeIntOrNull(draft.ibadahValue) || 0,
-              berolahraga: safeIntOrNull(draft.berolahraga) || 0,
-              makan_sehat: safeIntOrNull(draft.makanSehat) || 0,
-              gemar_belajar: safeIntOrNull(draft.gemarBelajar) || 0,
-              bermasyarakat: safeIntOrNull(draft.bermasyarakat) || 0,
-              tidur_cepat: safeIntOrNull(draft.tidurCepat) || 0,
-            }
-            const computedTotal = Object.values(tempPoints).reduce((a, b) => a + b, 0)
-
-            await jurnalKaihService.submit({
-              tanggal: draftDateStr,
-              nisn: validNisn,
-              namaSiswa: validNama,
-              bangunPagi: safeIntOrNull(draft.bangunPagi),
-              berolahraga: safeIntOrNull(draft.berolahraga),
-              ibadahMode: draft.ibadahMode || null,
-              ibadahValue: safeIntOrNull(draft.ibadahValue),
-              makanSehat: safeIntOrNull(draft.makanSehat),
-              gemarBelajar: safeIntOrNull(draft.gemarBelajar),
-              bermasyarakat: safeIntOrNull(draft.bermasyarakat),
-              tidurCepat: safeIntOrNull(draft.tidurCepat),
-              totalPoin: computedTotal,
-              fotoBangunPagi: cleanPhotoUrl(draft.fotoBangunPagi),
-              fotoOlahraga: cleanPhotoUrl(draft.fotoOlahraga),
-              fotoIbadah: cleanPhotoUrl(draft.fotoIbadah),
-              fotoMakan: cleanPhotoUrl(draft.fotoMakan),
-              fotoBelajar: cleanPhotoUrl(draft.fotoBelajar),
-              fotoSosial: cleanPhotoUrl(draft.fotoSosial),
-              fotoTidur: cleanPhotoUrl(draft.fotoTidur),
-              isLocked: true
-            })
-          }
-        }
-
         // 2. Cari data hari target (hari ini)
         const existing = [...res.data.items].reverse().find((item) => {
           const matchNisn = String(item.nisn) === String(validNisn)

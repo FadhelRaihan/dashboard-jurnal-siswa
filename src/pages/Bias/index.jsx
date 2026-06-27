@@ -523,15 +523,10 @@ export default function MonitoringBiasPage() {
                 {selectedStudent && (() => {
                     const activeIndicators = getIndikatorDetail(selectedStudent);
                     const isIdentified = selectedStudent.analisisBias.status !== "Belum Dapat Diidentifikasi";
-                    const isSubmitted = selectedStudent.partisipasi.siswa > 0;
                     
                     const sisIM = getDimensionPctAndLabel(selectedStudent.skorSiswa.im, 35);
                     const sisSDE = getDimensionPctAndLabel(selectedStudent.skorSiswa.sde, 35);
                     const sisACQ = getDimensionPctAndLabel(selectedStudent.skorSiswa.acq, 80);
-
-                    const ortIM = getDimensionPctAndLabel(selectedStudent.skorOrTu.im, 35);
-                    const ortSDE = getDimensionPctAndLabel(selectedStudent.skorOrTu.sde, 35);
-                    const ortACQ = getDimensionPctAndLabel(selectedStudent.skorOrTu.acq, 80);
 
                     const studentAngketAvg = isIdentified ? Math.round(
                         activeIndicators.reduce((acc, curr) => acc + curr.angketSiswa, 0) / activeIndicators.length
@@ -544,8 +539,8 @@ export default function MonitoringBiasPage() {
 
                     // Gap Status thresholds
                     const getGapStatus = (gap) => {
-                        if (gap >= 20) return { dot: '🔴', label: 'Tinggi', textClass: 'text-error font-black' };
-                        if (gap >= 10) return { dot: '🟡', label: 'Sedang', textClass: 'text-warning font-black' };
+                        if (gap >= 75) return { dot: '🔴', label: 'Tinggi', textClass: 'text-error font-black' };
+                        if (gap >= 50) return { dot: '🟡', label: 'Sedang', textClass: 'text-warning font-black' };
                         return { dot: '🟢', label: 'Rendah', textClass: 'text-success font-black' };
                     };
 

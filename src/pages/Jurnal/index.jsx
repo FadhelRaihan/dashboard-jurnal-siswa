@@ -377,7 +377,8 @@ export default function RekapKebiasaanPage() {
           dataHarian.length > 0 ? (
             dataHarian.map((siswa, idx) => {
               const hasLog = !!siswa.log;
-              const isLocked = hasLog && (siswa.log.isLocked === "true" || siswa.log.isLocked === true || siswa.log.isLocked == 1);
+              const todayDateStr = new Date().toLocaleDateString("sv-SE");
+              const isLocked = hasLog && (siswa.log.isLocked === "true" || siswa.log.isLocked === true || siswa.log.isLocked == 1 || filterDate < todayDateStr);
               
               let statusBadge = (
                 <span className="badge badge-error text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest">
@@ -738,7 +739,7 @@ export default function RekapKebiasaanPage() {
                       })}
                     </div>
                     <div className="flex items-center gap-2">
-                      {jurnal.isLocked === "true" || jurnal.isLocked === true || jurnal.isLocked == 1 ? (
+                      {jurnal.isLocked === "true" || jurnal.isLocked === true || jurnal.isLocked == 1 || (jurnal.tanggal && new Date(jurnal.tanggal).toLocaleDateString("sv-SE") < new Date().toLocaleDateString("sv-SE")) ? (
                         <span className="badge badge-success text-white font-black text-[8px] px-2.5 py-3 border-none tracking-widest">
                           🔐 SELESAI
                         </span>
