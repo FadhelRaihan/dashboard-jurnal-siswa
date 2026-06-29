@@ -10,6 +10,9 @@ import SecondaryLayout from "./layouts/SecondaryLayout";
 import OrangTuaGuestLayout from "./layouts/OrangTuaGuestLayout";
 import OrangTuaLayout from "./layouts/OrangTuaLayout";
 
+// ─── Landing Page ─────────────────────────────────────────────────────────────
+const LandingPage = lazy(() => import("./pages/Landing"));
+
 // ─── Admin/Guru Pages ─────────────────────────────────────────────────────────
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const MasterDataPage = lazy(() => import("./pages/MasterData"));
@@ -51,9 +54,11 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
+        {/* ── Landing Page (Public) ──────────────────────────────────────── */}
+        <Route path="/" element={<LandingPage />} />
+
         {/* ── Admin / Guru ───────────────────────────────────────────────── */}
         <Route element={<MainLayout />}>
-          <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/master-data" element={<MasterDataPage />} />
           <Route path="/panduan" element={<KaihPanduanPage />} />

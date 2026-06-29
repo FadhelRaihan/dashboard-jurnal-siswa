@@ -10,7 +10,7 @@ const Notification = ({ type, message, onClose }) => {
   }, [onClose]);
 
   // Tentukan class berdasarkan status
-  const alertClass = type === 'success' ? 'bg-primary' : 'bg-aksen-1';
+  const alertClass = type === 'success' ? 'bg-primary' : 'bg-error';
 
   return (
     <div className=" toast toast-end toast-top z-[9999]">
